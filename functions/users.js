@@ -2,28 +2,51 @@ const { DynamoDB } = require('aws-sdk');
 const sls = require('serverless-http');
 const express = require('express');
 
+
 const db = new DynamoDB.DocumentClient();
 const UsersTable = process.env.USERS_TABLE;
 
 const usersAPI = express();
 usersAPI.use(express.json());
 
+usersAPI.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+  next();
+});
+
 usersAPI.post('/user', async (req, res, next) => {
   const user = {
+    googleId: req.body.googleId,
     username: req.body.username,
+    givenName: req.body.givenName,
+    familyName: req.body.familyName,
     email: req.body.email,
     role: req.body.role,
   };
   try {
-    const dbResult = await db
-      .put({
-        TableName: UsersTable,
-        Item: user,
-      })
-      .promise();
-    console.log('successfully created user');
-    console.log(dbResult);
-    return res.status(201).send(user);
+    let existingUser = await db.query({
+            TableName: UsersTable,
+            Key: {
+                googleId: req.body.googleId,
+            },
+        }
+    ).promise();
+    if (existingUser) {
+        console.log(existingUser);
+      return res.status(201).send(existingUser);
+    } else {
+      const dbResult = await db
+          .put({
+            TableName: UsersTable,
+            Item: user,
+          })
+          .promise();
+      console.log('successfully created user');
+      console.log(dbResult);
+      return res.status(201).send(user);
+    }
   } catch (err) {
     console.log('error in saving user');
     console.log(err);
@@ -31,13 +54,13 @@ usersAPI.post('/user', async (req, res, next) => {
   }
 });
 
-usersAPI.get('/user/:username', async (req, res, next) => {
+usersAPI.get('/user/:googleId', async (req, res, next) => {
   try {
     const dbResult = await db
       .get({
         TableName: UsersTable,
         Key: {
-          username: req.params.username,
+          googleId: req.params.googleId,
         },
       })
       .promise();
