@@ -30,6 +30,8 @@ provider:
   environment:
     USERS_TABLE: users-${opt:stage, self:provider.stage}
     VIOLATIONS_TABLE: violations-${opt:stage, self:provider.stage}
+    GITHUB_WEBHOOK_SECRET: cpsc319
+    GITHUB_AUTHENTICATION_TOKEN: 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
 
   # you can add statements to the Lambda function's IAM Role here
   iamRoleStatements:
@@ -45,6 +47,13 @@ provider:
       Resource: '*'
 
 functions:
+  webhook:
+    handler: functions/webhook.webhook
+    events:
+      - http:
+          path: /webhook
+          method: post
+          cors: true
   users:
     handler: functions/routes/users.handler
     events:
