@@ -33,19 +33,29 @@ module.exports.webhook = async (event, context, callback) => {
     };
 
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
-    console.log(fileUrls);
-    getContent(fileUrls);
+    const files = await getChangedFilesContent(fileUrls);
+    console.log(files);
 
     return callback(null, response);
 };
 
-function getContent (urls) {
+async function getChangedFilesContent (urls) {
 
-    return axios.get(urls[0].content_url, {
+    let contents = [];
+    console.log(urls);
+
+    urls.forEach(element => { contents.push(getContent(element.contents_url)); });
+
+    return axios.all(contents);
+}
+
+function getContent (url) {
+
+    return axios.get(url, {
         'headers': {
             'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
         }
-    }).then(console.log(res.data));
+    }).then (res => res.data);
 }
 
 function getFileUrls(url) {
