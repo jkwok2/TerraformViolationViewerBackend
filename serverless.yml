@@ -46,7 +46,7 @@ provider:
 
 functions:
   users:
-    handler: functions/users.handler
+    handler: functions/routes/users.handler
     events:
       - http:
           path: /user
@@ -55,7 +55,7 @@ functions:
           path: /user/{proxy+}
           method: ANY
   violations:
-    handler: functions/violations.handler
+    handler: functions/routes/violations.handler
     events:
       - http:
           path: /violation
