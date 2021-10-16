@@ -13,14 +13,24 @@ const UsersTable = process.env.USERS_TABLE;
 const usersAPI = express();
 usersAPI.use(express.json());
 
+usersAPI.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+    next();
+});
+
 usersAPI.post(
   '/user',
   validateRequest(userSchema.userPost, 'body'),
   async (req, res, next) => {
     const user = {
-      username: req.body.username,
-      email: req.body.email,
-      role_name: req.body.role_name,
+        googleId: req.body.googleId,
+        username: req.body.username,
+        givenName: req.body.givenName,
+        familyName: req.body.familyName,
+        email: req.body.email,
+        role: req.body.role,
     };
     try {
       await db
@@ -38,15 +48,15 @@ usersAPI.post(
 );
 
 usersAPI.get(
-  '/user/:username',
-  validateRequest(userSchema.userGetByUsername, 'params'),
+  '/user/:googleId',
+  validateRequest(userSchema.userGetByGoogleId, 'params'),
   async (req, res, next) => {
     try {
       const dbResult = await db
         .get({
           TableName: UsersTable,
           Key: {
-            username: req.params.username,
+            googleId: req.params.googleId,
           },
         })
         .promise();
