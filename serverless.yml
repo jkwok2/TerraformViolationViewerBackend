@@ -46,7 +46,7 @@ provider:
 
 functions:
   users:
-    handler: functions/users.handler
+    handler: functions/routes/users.handler
     events:
       - http:
           path: /user
@@ -55,7 +55,7 @@ functions:
           path: /user/{proxy+}
           method: ANY
   violations:
-    handler: functions/violations.handler
+    handler: functions/routes/violations.handler
     events:
       - http:
           path: /violation
@@ -72,10 +72,10 @@ resources:
       Properties:
         TableName: ${self:provider.environment.USERS_TABLE}
         AttributeDefinitions:
-          - AttributeName: username
+          - AttributeName: googleId
             AttributeType: S
         KeySchema:
-          - AttributeName: username
+          - AttributeName: googleId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
