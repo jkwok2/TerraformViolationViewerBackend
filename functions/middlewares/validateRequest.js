@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const CustomError = require('../responses/errors/CustomError');
 
 const validateRequestSchema = (schema, property) => {
   return (req, res, next) => {
@@ -6,14 +7,11 @@ const validateRequestSchema = (schema, property) => {
     const valid = error == null;
 
     if (valid) {
-      console.log('valid schema!');
       next();
     } else {
       const { details } = error;
       const message = details.map((i) => i.message).join(',');
-      console.log('validate request schema error: ', error);
-      console.log('validate request schema error message: ', message);
-      res.status(422).json({ error: message });
+      throw new CustomError(422, message);
     }
   };
 };
