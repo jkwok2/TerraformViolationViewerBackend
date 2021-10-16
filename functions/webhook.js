@@ -49,13 +49,40 @@ async function getChangedFilesContent (urls) {
     return axios.all(contents);
 }
 
-function getContent (url) {
+/*
 
+{
+    name: 'changedFile.text',
+    path: 'changedFile.text',
+    sha: '41c2670b3381b74c6f4c07db1a1531e77f85835a',
+    size: 85,
+    url: 'https://api.github.com/repos/CPSC-319/Group4Test/contents/changedFile.text?ref=5783394bbe9abd7ceb93c1271f49aa7bef91b64e',
+    html_url: 'https://github.com/CPSC-319/Group4Test/blob/5783394bbe9abd7ceb93c1271f49aa7bef91b64e/changedFile.text',
+    git_url: 'https://api.github.com/repos/CPSC-319/Group4Test/git/blobs/41c2670b3381b74c6f4c07db1a1531e77f85835a',
+    download_url: 'https://raw.githubusercontent.com/CPSC-319/Group4Test/5783394bbe9abd7ceb93c1271f49aa7bef91b64e/changedFile.text?token=AD23Y4I66XRHWZJCQ2WZNCTBNM5M4',
+    type: 'file',
+    content: 'bGthamRzZjtsa3NhamZkO2xza2pmZAoKdHdvdHdvdHdvCjtsa2pkcztmbGtq\n' +
+      'c2FkZgoKcHVzaHB1c2hwdXNoCgpzYWRmZHNhZgoKCmJsYWggYmxhaA==\n',
+    encoding: 'base64',
+    _links: {
+      self: 'https://api.github.com/repos/CPSC-319/Group4Test/contents/changedFile.text?ref=5783394bbe9abd7ceb93c1271f49aa7bef91b64e',
+      git: 'https://api.github.com/repos/CPSC-319/Group4Test/git/blobs/41c2670b3381b74c6f4c07db1a1531e77f85835a',
+      html: 'https://github.com/CPSC-319/Group4Test/blob/5783394bbe9abd7ceb93c1271f49aa7bef91b64e/changedFile.text'
+    }
+  },
+*/
+function getContent(url) {
     return axios.get(url, {
         'headers': {
             'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
         }
-    }).then (res => res.data);
+    }).then((res) => {
+        return {
+            'name': res.data.name,
+            'path': res.data.path,
+            'content': res.data.content
+        }
+    });
 }
 
 function getFileUrls(url) {
