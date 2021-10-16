@@ -26,17 +26,6 @@ usersAPI.post('/user', async (req, res, next) => {
     role: req.body.role,
   };
   try {
-    let existingUser = await db.query({
-            TableName: UsersTable,
-            Key: {
-                googleId: req.body.googleId,
-            },
-        }
-    ).promise();
-    if (existingUser) {
-        console.log(existingUser);
-      return res.status(201).send(existingUser);
-    } else {
       const dbResult = await db
           .put({
             TableName: UsersTable,
@@ -46,7 +35,6 @@ usersAPI.post('/user', async (req, res, next) => {
       console.log('successfully created user');
       console.log(dbResult);
       return res.status(201).send(user);
-    }
   } catch (err) {
     console.log('error in saving user');
     console.log(err);
