@@ -72,10 +72,10 @@ resources:
       Properties:
         TableName: ${self:provider.environment.USERS_TABLE}
         AttributeDefinitions:
-          - AttributeName: username
+          - AttributeName: googleId
             AttributeType: S
         KeySchema:
-          - AttributeName: username
+          - AttributeName: googleId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
