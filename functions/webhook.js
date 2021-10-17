@@ -2,18 +2,29 @@
 
 const crypto = require('crypto');
 const axios = require('axios');
+var aws = require('aws-sdk');
+
+aws.config.region = process.region;
+var lambda = new aws.Lambda();
 
 // Change to tr for terraform
-const fileType = '.txt';
+const fileType = 'txt';
 
 module.exports.webhook = async (event, context, callback) => {
 
     validateGithubWebhookResponse(event);
 
-    let body = JSON.parse(event.body);
+    const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+            input: event,
+        }),
+    };
 
-    // todo only continue if creating PR
-    let action = body.action;
+    let body = JSON.parse(event.body);
+    console.log('action ' + body.action);
+    // Only scan Terraform files when PR is created
+    if (body.action !== 'opened' && body.action !== 'reopened') return callback(null, response);
 
     const pullRequest = {
         'id': body.pull_request.id,
@@ -25,27 +36,24 @@ module.exports.webhook = async (event, context, callback) => {
         // 'changed_files_num': body.pull_request.changed_files
     }
 
-    const response = {
-        statusCode: 200,
-        body: JSON.stringify({
-            input: event,
-        }),
-    };
-
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
     const files = await getChangedFilesContent(fileUrls);
     console.log(files);
 
+    // call parsing lambda on each file in files
+    
     return callback(null, response);
 };
 
-async function getChangedFilesContent (urls) {
+/*
+Returns list of { name: String, path: String, content: base64 }
+*/
+async function getChangedFilesContent(urls) {
 
     let contents = [];
-    console.log(urls);
-
-    urls.forEach(element => { contents.push(getContent(element.contents_url)); });
-
+    urls.forEach(element => {
+        contents.push(getContent(element.contents_url));
+    });
     return axios.all(contents);
 }
 
@@ -72,25 +80,29 @@ async function getChangedFilesContent (urls) {
   },
 */
 function getContent(url) {
+
+    console.log("test");
+
     return axios.get(url, {
         'headers': {
             'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
         }
     }).then((res) => {
+        console.log(res.data);
         return {
             'name': res.data.name,
             'path': res.data.path,
             'content': res.data.content
-        }
+        };
     });
 }
 
 function getFileUrls(url) {
     return axios.get(url, {
-            'headers': {
-                'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
-            }
-        }).then(res => res.data);
+        'headers': {
+            'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
+        }
+    }).then(res => res.data);
 }
 
 // code taken from https://github.com/serverless/examples/blob/master/aws-node-github-webhook-listener/handler.js
