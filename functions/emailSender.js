@@ -4,13 +4,27 @@
 const aws = require("aws-sdk");
 const ses = new aws.SES({ region: "us-east-1" });
 
-exports.handler = async function (event) {
+module.exports.handler = async function (event) {
 
   //these four values need to be passed in by call to lambda
-  let name = "Kevin";
-  let tempVal = "error";
-  let errCount = "100";
-  let errURL = "www.testurl.com";
+  let name
+  let statVal
+  let errCount
+  let address
+
+  if (event.name) { // to test this function alone
+    name = event.name;
+    statVal = event.statVal;
+    errCount = event.errCount;
+    address = event.address;
+  } else {
+    name = 'Kevin';
+    statVal = 'pass';
+    errCount = '0';
+    address = 'kevinguorm@gmail.com';
+  }
+
+  let errURL = "www.testurl.com"; //this is yet to be decided
 
   const passTemp = {
     Body: {
@@ -19,7 +33,7 @@ exports.handler = async function (event) {
         Data:
             "Hello " + name + "," +
             "\n\n" +
-            "Your latest pull request was scanned." + "There were no errors found." +
+            "Your latest pull request was scanned. " + "There were no errors found." +
             "\n\n" +
             "Click here to view your error history: " + errURL
       },
@@ -37,7 +51,7 @@ exports.handler = async function (event) {
         Data:
             "Hello " + name + "," +
             "\n\n" +
-            "Your latest pull request was scanned." + "There were " + errCount + "errors found." +
+            "Your latest pull request was scanned. " + "There were " + errCount + " errors found." +
             "\n\n" +
             "Click here to view your error history: " + errURL
       },
@@ -55,7 +69,7 @@ exports.handler = async function (event) {
         Data:
             "Hello " + name + "," +
             "\n\n" +
-            "Your latest pull request failed to scan." +
+            "Your latest pull request failed to scan. " +
             "\n\n" +
             "Click here to view your error history: " + errURL
       },
@@ -69,7 +83,7 @@ exports.handler = async function (event) {
 
   let template = errTemp;
 
-  switch (tempVal){
+  switch (statVal){
     case "pass":
       template = passTemp;
       break;
@@ -82,7 +96,7 @@ exports.handler = async function (event) {
 
   let params = {
     Destination: {
-      ToAddresses: ["kevinguorm@gmail.com"]
+      ToAddresses: [address]
     },
     Message: template,
     Source: "kevinguowm@gmail.com",
