@@ -11,7 +11,7 @@
 #
 # Happy Coding!
 
-service: hsbc-backend-app
+service: hsbc-backend-app-gokce
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -28,8 +28,8 @@ provider:
 
   # you can define service wide environment variables here
   environment:
-    USERS_TABLE: users-${opt:stage, self:provider.stage}
-    VIOLATIONS_TABLE: violations-${opt:stage, self:provider.stage}
+    USERS_TABLE: users-${opt:stage, self:provider.stage}-gokce
+    VIOLATIONS_TABLE: violations-${opt:stage, self:provider.stage}-gokce
     GITHUB_WEBHOOK_SECRET: cpsc319
     GITHUB_AUTHENTICATION_TOKEN: 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
 
@@ -44,6 +44,7 @@ provider:
         - 'dynamodb:PutItem'
         - 'dynamodb:UpdateItem'
         - 'dynamodb:DeleteItem'
+        - 'dynamodb:BatchWriteItem'
       Resource: '*'
 
 functions:
@@ -102,8 +103,8 @@ resources:
             AttributeType: S
           - AttributeName: repoId
             AttributeType: S
-          - AttributeName: timestamp
-            AttributeType: S
+          # - AttributeName: timestamp
+          #   AttributeType: S
         KeySchema:
           - AttributeName: id
             KeyType: HASH
@@ -112,8 +113,8 @@ resources:
             KeySchema:
               - AttributeName: userId
                 KeyType: HASH
-              - AttributeName: timestamp
-                KeyType: RANGE
+              # - AttributeName: timestamp
+              #   KeyType: RANGE
             Projection:
               ProjectionType: 'ALL'
             ProvisionedThroughput:
@@ -123,8 +124,8 @@ resources:
             KeySchema:
               - AttributeName: repoId
                 KeyType: HASH
-              - AttributeName: timestamp
-                KeyType: RANGE
+              # - AttributeName: timestamp
+              #   KeyType: RANGE
             Projection:
               ProjectionType: 'ALL'
             ProvisionedThroughput:
