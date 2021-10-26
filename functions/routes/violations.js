@@ -9,12 +9,22 @@ const ViolationsTable = process.env.VIOLATIONS_TABLE;
 const violationsAPI = express();
 violationsAPI.use(express.json());
 
+violationsAPI.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, PATCH, DELETE'
+  );
+  next();
+});
+
 violationsAPI.post('/violation', async (req, res, next) => {
   const violationId = uuidv4();
-  const username = 'xyz'; // todo: get this from the frontend request
+  const userId = 'xyz'; // todo: get this from the frontend request
   const violation = {
     id: violationId,
-    username,
+    userId,
     repoId: req.body.repoId,
     prId: req.body.prId,
     filePath: req.body.filePath,
@@ -39,23 +49,25 @@ violationsAPI.post('/violation', async (req, res, next) => {
   }
 });
 
-violationsAPI.get('/violation/:id', async (req, res, next) => {
+violationsAPI.get('/violation', async (req, res, next) => {
+  const userId = req.query.userId;
+  console.log('userid from request: ', userId);
   try {
     const dbResult = await db
-      .get({
+      .query({
         TableName: ViolationsTable,
-        Key: {
-          id: req.params.id,
+        IndexName: 'UserIdIndex',
+        KeyConditionExpression: 'userId = :user_id',
+        ExpressionAttributeValues: {
+          ':user_id': userId,
         },
       })
       .promise();
-    console.log('successfully found violation');
-    console.log(dbResult);
-    return res.status(200).send(dbResult.Item);
+    console.log('found user violations: ', dbResult);
+    return res.status(200).send(dbResult);
   } catch (err) {
-    console.log('error in getting violation');
-    console.log(err);
-    return res.status(500).send(err);
+    console.log('error in finding user violations: ', err);
+    return next(err);
   }
 });
 
