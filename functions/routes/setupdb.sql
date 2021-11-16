@@ -22,10 +22,6 @@ create table Violations(
     violationTime datetime not null
 );
 
--- 20:18:31	SELECT COUNT(*), userId, violationType FROM (SELECT * FROM `database-1`.`Violations` GROUP BY violationType) GROUP BY userId LIMIT 0, 1000	Error Code: 1248. Every derived table must have its own alias	0.074 sec
-
-
-
 insert into Users (userId, username, email, givenName, familyName, userRole) values ('111561841222565942402', 'HSBC Violation Viewer', 'hsbcviolationviewer@gmail.com', 'HSBC Violation Viewer', 'HSBC Violation Viewer', 'admin');
 insert into Users (userId, username, email, givenName, familyName, userRole) values ('105989777376658273094', 'GokceDilek', 'cpsc319.fall2021@gmail.com', 'Gokce', 'Dilek', 'base');
 

@@ -11,7 +11,7 @@
 #
 # Happy Coding!
 
-service: hsbc-backend-app-gokce
+service: hsbc-backend-app-naz
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -33,17 +33,6 @@ provider:
 
   # you can add statements to the Lambda function's IAM Role here
   # iamRoleStatements:
-  #   - Effect: 'Allow'
-  #     Action:
-  #       - 'dynamodb: DescribeTable'
-  #       - 'dynamodb:Query'
-  #       - 'dynamodb:Scan'
-  #       - 'dynamodb:GetItem'
-  #       - 'dynamodb:PutItem'
-  #       - 'dynamodb:UpdateItem'
-  #       - 'dynamodb:DeleteItem'
-  #       - 'dynamodb:BatchWriteItem'
-  #     Resource: '*'
 
 functions:
   webhook:

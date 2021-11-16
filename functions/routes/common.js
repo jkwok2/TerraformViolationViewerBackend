@@ -20,7 +20,7 @@ function initializeConnection() {
     });
   }
 
-  var connection = mysql.createConnection(config);
+  const connection = mysql.createConnection(config);
 
   // Add handlers.
   addDisconnectHandler(connection);
