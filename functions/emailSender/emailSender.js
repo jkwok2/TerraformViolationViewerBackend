@@ -5,6 +5,7 @@ const aws = require("aws-sdk");
 const ses = new aws.SES({ region: "us-east-1" });
 
 module.exports.handler = async function (event) {
+  /*
 
   //these four values need to be passed in by call to lambda
   let name
@@ -80,27 +81,54 @@ module.exports.handler = async function (event) {
           "noreply"
     },
   };
+*/
+  let name
+  let statVal
+  let errCount
+  let address
+  let repoName
 
-  let template = errTemp;
+  if (event.name && event.statVal && event.errCount && event.address && event.repoName) {
+    name = event.name;
+    statVal = event.statVal;
+    errCount = event.errCount;
+    address = event.address;
+    repoName = event.repoName
+  } else {
+    name = "Kevin"
+    statVal = 'pass';
+    errCount = '420';
+    address = 'kevinguogm@gmail.com';
+    repoName = "myRepo";
+  }
+
+  let temp;
+  let tempData;
+
+  //tempData = { "name":"Kevin", "repoName":"someRepo", "errCount":"420"}
 
   switch (statVal){
     case "pass":
-      template = passTemp;
+      temp = "scannedTemplate";
+      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat("no").concat("\" }");
       break;
     case "fail":
-      template = failTemp;
+      temp = "scannedTemplate";
+      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat(errCount).concat("\" }");
       break;
     case "error":
-      template = errTemp;
+      temp = "errorTemplate";
+      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\" }");
+      break;
   };
 
   let params = {
+    Source: "Group 4 <cpsc319fall2021@gmail.com>",
+    Template: temp,
     Destination: {
       ToAddresses: [address]
     },
-    Message: template,
-    Source: "kevinguowm@gmail.com",
+    TemplateData: tempData
   };
-
-  return ses.sendEmail(params).promise()
+  return ses.sendTemplatedEmail(params).promise()
 };

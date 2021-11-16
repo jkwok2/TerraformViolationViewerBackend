@@ -1,0 +1,7 @@
+let emailPayload = {
+    name: "",           // name of recipient
+    statVal: "",        // pass/fail/error
+    errCount: "",       // number of violations
+    address: "",        // email address of recipient
+    repoName: ""        // name of pr repo
+}
