@@ -28,24 +28,22 @@ provider:
 
   # you can define service wide environment variables here
   environment:
-    USERS_TABLE: users-${opt:stage, self:provider.stage}-gokce
-    VIOLATIONS_TABLE: violations-${opt:stage, self:provider.stage}-gokce
     GITHUB_WEBHOOK_SECRET: cpsc319
     GITHUB_AUTHENTICATION_TOKEN: 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
 
   # you can add statements to the Lambda function's IAM Role here
-  iamRoleStatements:
-    - Effect: 'Allow'
-      Action:
-        - 'dynamodb: DescribeTable'
-        - 'dynamodb:Query'
-        - 'dynamodb:Scan'
-        - 'dynamodb:GetItem'
-        - 'dynamodb:PutItem'
-        - 'dynamodb:UpdateItem'
-        - 'dynamodb:DeleteItem'
-        - 'dynamodb:BatchWriteItem'
-      Resource: '*'
+  # iamRoleStatements:
+  #   - Effect: 'Allow'
+  #     Action:
+  #       - 'dynamodb: DescribeTable'
+  #       - 'dynamodb:Query'
+  #       - 'dynamodb:Scan'
+  #       - 'dynamodb:GetItem'
+  #       - 'dynamodb:PutItem'
+  #       - 'dynamodb:UpdateItem'
+  #       - 'dynamodb:DeleteItem'
+  #       - 'dynamodb:BatchWriteItem'
+  #     Resource: '*'
 
 functions:
   webhook:
@@ -59,81 +57,19 @@ functions:
     handler: functions/routes/users.handler
     events:
       - http:
-          path: /user
+          path: /users
           method: ANY
       - http:
-          path: /user/{proxy+}
+          path: /users/{proxy+}
           method: ANY
   violations:
     handler: functions/routes/violations.handler
     events:
       - http:
-          path: /violation
+          path: /violations
           method: ANY
       - http:
-          path: /violation/{proxy+}
+          path: /violations/{proxy+}
           method: ANY
   emailSender:
     handler: functions/emailSender.handler
-
-
-# you can add CloudFormation resource templates here
-resources:
-  Resources:
-    UsersTable:
-      Type: AWS::DynamoDB::Table
-      DeletionPolicy: Retain
-      Properties:
-        TableName: ${self:provider.environment.USERS_TABLE}
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-    ViolationsTable:
-      Type: AWS::DynamoDB::Table
-      DeletionPolicy: Retain
-      Properties:
-        TableName: ${self:provider.environment.VIOLATIONS_TABLE}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: repoId
-            AttributeType: S
-          # - AttributeName: timestamp
-          #   AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        GlobalSecondaryIndexes:
-          - IndexName: UserIdIndex
-            KeySchema:
-              - AttributeName: userId
-                KeyType: HASH
-              # - AttributeName: timestamp
-              #   KeyType: RANGE
-            Projection:
-              ProjectionType: 'ALL'
-            ProvisionedThroughput:
-              ReadCapacityUnits: 1
-              WriteCapacityUnits: 1
-          - IndexName: RepoIdIndex
-            KeySchema:
-              - AttributeName: repoId
-                KeyType: HASH
-              # - AttributeName: timestamp
-              #   KeyType: RANGE
-            Projection:
-              ProjectionType: 'ALL'
-            ProvisionedThroughput:
-              ReadCapacityUnits: 1
-              WriteCapacityUnits: 1
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
