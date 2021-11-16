@@ -25,7 +25,7 @@ usersAPI.get(
   '/users/:userId',
   validateRequest(userSchema.userGetById, 'params'),
   async (req, res, next) => {
-    var con = initializeConnection();
+    const con = initializeConnection();
     con.query(
       'select * from `database-1`.`Users` where userId=' + req.params.userId,
       function (error, result, fields) {
