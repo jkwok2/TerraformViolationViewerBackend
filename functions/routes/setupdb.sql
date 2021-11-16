@@ -22,7 +22,7 @@ create table Violations(
     violationTime datetime not null
 );
 
-20:18:31	SELECT COUNT(*), userId, violationType FROM (SELECT * FROM `database-1`.`Violations` GROUP BY violationType) GROUP BY userId LIMIT 0, 1000	Error Code: 1248. Every derived table must have its own alias	0.074 sec
+-- 20:18:31	SELECT COUNT(*), userId, violationType FROM (SELECT * FROM `database-1`.`Violations` GROUP BY violationType) GROUP BY userId LIMIT 0, 1000	Error Code: 1248. Every derived table must have its own alias	0.074 sec
 
 
 
