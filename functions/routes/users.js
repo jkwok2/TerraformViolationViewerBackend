@@ -5,7 +5,6 @@ const validateRequest = require('../middlewares/validateRequest');
 const errorHandler = require('../middlewares/errorHandler');
 const CustomError = require('../responses/errors/CustomError');
 const CustomResponse = require('../responses/CustomResponse');
-const mysql = require('mysql');
 const initializeConnection = require('./common');
 
 const usersAPI = express();
