@@ -1,7 +1,5 @@
 const sls = require('serverless-http');
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const mysql = require('mysql');
 const initializeConnection = require('./common');
 
 const violationsAPI = express();
