@@ -2,7 +2,8 @@
 
 const crypto = require('crypto');
 const axios = require('axios');
-var aws = require('aws-sdk');
+const aws = require('aws-sdk');
+const fs = require('fs');
 
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
@@ -36,11 +37,28 @@ module.exports.webhook = async (event, context, callback) => {
         // 'changed_files_num': body.pull_request.changed_files
     }
 
-    const fileUrls = await getFileUrls(pullRequest.url + '/files');
-    const files = await getChangedFilesContent(fileUrls);
-    console.log(files);
+    // const fileUrls = await getFileUrls(pullRequest.url + '/files');
+    // const files = await getChangedFilesContent(fileUrls);
+    // console.log(files);
+    // call parsing lambda on each file in files
+    const fileName = "efsTEST.txt";
+    const fileContent = "this is a test blah asd;flkj;lk123";
+
+    console.log("write to file");
+
+    fs.writeFileSync('/mnt/files/' + fileName, fileContent);
+
+    console.log("done writing to file");
+    console.log("done writing modified to file");
+
+    console.log('start of read file');
+
+    const f = fs.readFileSync('/mnt/files/' + fileName);
 
     // call parsing lambda on each file in files
+    console.log("done reading to modified file");
+    console.log(f);
+
     
     return callback(null, response);
 };
