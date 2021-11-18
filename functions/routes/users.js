@@ -20,6 +20,34 @@ usersAPI.use((req, res, next) => {
     next();
 });
 
+usersAPI.post(
+    '/users',
+    validateRequest(userSchema.userPost),
+    async (req, res) => {
+        const con = initializeConnection();
+        let existingUser = await con.query('select * from `database-1`.`Users` where userId=' + req.body.userId);
+        if (existingUser) {
+            console.log({ existingUser });
+            con.end();
+            return res.status(200).send(existingUser);
+        } else {
+            con.query('Insert into `database-1`.`Users` (userId, email, givenName, familyName) values ()' ,
+                function(err, result) {
+                    if (err) {
+                        console.log({ err });
+                        con.end();
+                        return res.status(500).send(err);
+                    }
+                    if (result) {
+                        console.log({ result });
+                        con.end();
+                        return res.status(200).send(result);
+                    }
+                });
+
+        }
+});
+
 usersAPI.get(
     '/users/:userId',
     validateRequest(userSchema.userGetById, 'params'),
