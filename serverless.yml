@@ -30,13 +30,13 @@ provider:
     securityGroupIds:
       - !GetAtt VPC.DefaultSecurityGroup
     subnetIds:
-      - !Ref PrivateSubnetA
+      - !Ref SubnetAPrivate
 
   # you can define service wide environment variables here
   environment:
     GITHUB_WEBHOOK_SECRET: cpsc319
     GITHUB_AUTHENTICATION_TOKEN: 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
-    # efsAccessPoint: fsap-099d31199150da4f8
+    efsAccessPoint: fsap-099d31199150da4f8
     # LocalMountPath: /efs
     EFS_MOUNT_PATH: ${self:custom.efsMountPath}
 
@@ -48,7 +48,7 @@ provider:
         - ec2:CreateNetworkInterface
         - ec2:DescribeNetworkInterfaces
         - ec2:DeleteNetworkInterface
-        - ses:SendEmail
+        - ses:SendTemplatedEmail
         - lambda:InvokeFunction
       Resource: '*'
 
@@ -83,11 +83,89 @@ functions:
           path: /violations/{proxy+}
           method: ANY
   emailSender:
-    handler: functions/emailSender.handler
+    handler: functions/emailSender/emailSender.emailSender
 
 resources:
   Resources:
-    FileSystemResource:
+    VPC:
+      Type: 'AWS::EC2::VPC'
+      Properties:
+        CidrBlock: !Sub '10.0.0.0/16'
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
+        InstanceTenancy: default
+    InternetGateway:
+      Type: 'AWS::EC2::InternetGateway'
+      Properties:
+        Tags:
+        - Key: Name
+          Value: !Sub '10.0.0.0/16'
+    VPCGatewayAttachment:
+      Type: 'AWS::EC2::VPCGatewayAttachment'
+      Properties:
+        VpcId: !Ref VPC
+        InternetGatewayId: !Ref InternetGateway
+    SubnetAPublic:
+      Type: 'AWS::EC2::Subnet'
+      Properties:
+        AvailabilityZone: !Select [0, !GetAZs '']
+        CidrBlock: !Sub '10.0.0.0/20'
+        MapPublicIpOnLaunch: true
+        VpcId: !Ref VPC
+    SubnetAPrivate:
+      Type: 'AWS::EC2::Subnet'
+      Properties:
+        AvailabilityZone: !Select [0, !GetAZs '']
+        CidrBlock: !Sub '10.0.128.0/20'
+        VpcId: !Ref VPC
+    RouteTableAPublic:
+      Type: 'AWS::EC2::RouteTable'
+      Properties:
+        VpcId: !Ref VPC
+    # create private route table
+    RouteTableAPrivate:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId: !Ref VPC
+    # create route table association
+    RouteTableAssociationAPublic:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      Properties:
+        SubnetId: !Ref SubnetAPublic
+        RouteTableId: !Ref RouteTableAPublic
+    RouteTableAssociationAPrivate:
+      Type: 'AWS::EC2::SubnetRouteTableAssociation'
+      Properties:
+        SubnetId: !Ref SubnetAPrivate
+        RouteTableId: !Ref RouteTableAPrivate
+    RouteTablePublicAInternetRoute:
+      Type: 'AWS::EC2::Route'
+      DependsOn: VPCGatewayAttachment
+      Properties:
+        RouteTableId: !Ref RouteTableAPublic
+        DestinationCidrBlock: '0.0.0.0/0'
+        GatewayId: !Ref InternetGateway
+    EIPA:
+      Type: 'AWS::EC2::EIP'
+      Properties:
+        Domain: vpc
+    NatGatewayA:
+      Type: 'AWS::EC2::NatGateway'
+      Properties:
+        AllocationId: !GetAtt 'EIPA.AllocationId'
+        SubnetId: !Ref SubnetAPublic
+    RouteA:
+      Type: 'AWS::EC2::Route'
+      Properties:
+        RouteTableId: !Ref RouteTableAPrivate
+        DestinationCidrBlock: '0.0.0.0/0'
+        NatGatewayId: !Ref NatGatewayA
+    # NatGatewayLambdaSecurityGroup:
+    #   Type: 'AWS::EC2::SecurityGroup'
+    #   Properties:
+    #     VpcId: !Ref VPC
+    #     GroupDescription: 'Security group for NAT Gateway Lambda'
+    ElasticFileSystem:
       Type: 'AWS::EFS::FileSystem'
       Properties:
         PerformanceMode: generalPurpose
@@ -100,21 +178,13 @@ resources:
                 - 'elasticfilesystem:ClientMount'
               Principal:
                 AWS: '*'
-    # create efs mount target
-    MountTargetResource1:
-      Type: AWS::EFS::MountTarget
-      Properties:
-        FileSystemId: !Ref FileSystemResource
-        SubnetId: !Ref PrivateSubnetA
-        SecurityGroups:
-          - !GetAtt VPC.DefaultSecurityGroup
     # create access point resource
     AccessPointResource:
       Type: 'AWS::EFS::AccessPoint'
       DependsOn:
         - MountTargetResource1
       Properties:
-        FileSystemId: !Ref FileSystemResource
+        FileSystemId: !Ref ElasticFileSystem
         PosixUser:
           Uid: '1000'
           Gid: '1000'
@@ -124,31 +194,15 @@ resources:
             OwnerUid: '1000'
             Permissions: '0777'
           Path: '/efs'
-    VPC:
-      Type: AWS::EC2::VPC
+    # create efs mount target
+    MountTargetResource1:
+      Type: AWS::EFS::MountTarget
       Properties:
-        CidrBlock: 10.192.0.0/16
-        EnableDnsSupport: 'true'
-        EnableDnsHostnames: 'true'
-    # create a single private subnet for this demo
-    PrivateSubnetA:
-      Type: AWS::EC2::Subnet
-      Properties:
-        VpcId: !Ref VPC
-        CidrBlock: 10.192.10.0/24
-        AvailabilityZone: !Select [0, !GetAZs ''] # Get the first AZ in the list
-        MapPublicIpOnLaunch: false
-    # create private route table
-    PrivateRouteTable1:
-      Type: AWS::EC2::RouteTable
-      Properties:
-        VpcId: !Ref VPC
-    # create route table association
-    PrivateSubnet1RouteTableAssociation:
-      Type: AWS::EC2::SubnetRouteTableAssociation
-      Properties:
-        RouteTableId: !Ref PrivateRouteTable1
-        SubnetId: !Ref PrivateSubnetA
+        FileSystemId: !Ref ElasticFileSystem
+        SubnetId: !Ref SubnetAPrivate
+        SecurityGroups:
+          - !GetAtt VPC.DefaultSecurityGroup
+    
     lambdaEFSrole:
       Type: AWS::IAM::Role
       Properties:
@@ -192,6 +246,7 @@ resources:
                 - Effect: Allow
                   Action:
                     - elasticfilesystem:ClientMount
+                    - elasticfilesystem:ClientRootAccess
                     - elasticfilesystem:ClientWrite
                     - elasticfilesystem:DescribeMountTargets
                   Resource: '*'
