@@ -3,15 +3,17 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const aws = require('aws-sdk');
-const fs = require('fs');
+
+const invokeLambda = require('functions/utilities/invokeLambda.js')
 
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
 
-const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
+const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+const readFileLambdaName = 'hsbc-backend-app-meg-dev-readFile';
 
 // Change to tr for terraform
-const fileType = 'tf';
+const fileType = '.tf';
 
 module.exports.webhook = async (event, context, callback) => {
 
@@ -44,24 +46,15 @@ module.exports.webhook = async (event, context, callback) => {
     // console.log(files);
     // call parsing lambda on each file in files
 
-    console.log("test write to file");
+    // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
 
-    fs.writeFileSync('/mnt/files/' + files[0].name, files[0].content);
+    const dir = '/mnt/files/' + pullRequest.pullRequestId;
+    // const path = dir + "/" + event.filename;
 
-    console.log("done writing to file");
-    console.log("done writing modified to file");
-
-    console.log('test read file');
-
-    const f = fs.readFileSync('/mnt/files/' + files[0].name);
-
-    // call parsing lambda on each file in files
-    console.log("done reading to modified file");
-    console.log(f);
-
-    const email = await getGithubUserEmail(pullRequest.username);
-    console.log('email: ' + await email);
-    await invokeEmailLambda(pullRequest.username, email, 'fail', '1', pullRequest.repo);
+    files.forEach(f => invokeLambda(writeFileLambdaName, {filename: f.name, 
+                                                            content: f.content, 
+                                                            pullRequestId: pullRequest.id, 
+                                                            repoName: pullRequest.repo}));
 
     return callback(null, response);
 };
@@ -78,33 +71,6 @@ async function getGithubUserEmail(username) {
     });
 }
 
-async function invokeEmailLambda(username, email, status, numErrs, repoName) {
-
-    console.log("email lambda invoke fn")
-    // These four values need to be passed
-    let emailPayload = {
-        name: username,
-        statVal: status, // pass/fail/error
-        errCount: numErrs,
-        address: email,
-        repoName: repoName
-    }
-    var params = {
-        FunctionName: emailLambdaName, // Name of the function to be called
-        InvocationType: 'RequestResponse', // For synchronous calls
-        LogType: 'Tail', // Get log from called function
-        Payload :JSON.stringify(emailPayload) // The payload sent to the function
-    };
-
-    return lambda.invoke(params, function(err, data) {
-        if (err) {
-          throw err;
-        } else {
-          console.log(emailLambdaName +  'invoked: ' +  data.Payload);
-        }
-      }).promise();
-}
-
 /*
 Returns list of { name: String, path: String, content: base64 }
 */
@@ -112,7 +78,10 @@ async function getChangedFilesContent(urls) {
 
     let contents = [];
     urls.forEach(element => {
-        contents.push(getContent(element.contents_url));
+        const filename = element.filename;
+        if (filename.substr(filename.length - 3) === fileType) {
+            contents.push(getContent(element.contents_url));
+        }
     });
     return axios.all(contents);
 }
@@ -140,8 +109,6 @@ async function getChangedFilesContent(urls) {
   },
 */
 function getContent(url) {
-
-    console.log("test");
 
     return axios.get(url, {
         'headers': {
