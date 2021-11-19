@@ -31,7 +31,9 @@ usersAPI.post(
             con.end();
             return res.status(200).send(existingUser);
         } else {
-            con.query('Insert into `database-1`.`Users` (userId, email, givenName, familyName) values ()' ,
+            console.log(req.body.userId);
+            console.log(req.body.email);
+            con.query('Insert into `database-1`.`Users` (userId, email, givenName, familyName) values (`${req.body.userId}`, `${req.body.email}`, `${req.body.givenName}`, `${req.body.familyName}`)' ,
                 function(err, result) {
                     if (err) {
                         console.log({ err });
