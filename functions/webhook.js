@@ -2,13 +2,16 @@
 
 const crypto = require('crypto');
 const axios = require('axios');
-var aws = require('aws-sdk');
+const aws = require('aws-sdk');
+const fs = require('fs');
 
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
 
+const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
+
 // Change to tr for terraform
-const fileType = 'txt';
+const fileType = 'tf';
 
 module.exports.webhook = async (event, context, callback) => {
 
@@ -38,12 +41,69 @@ module.exports.webhook = async (event, context, callback) => {
 
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
     const files = await getChangedFilesContent(fileUrls);
-    console.log(files);
+    // console.log(files);
+    // call parsing lambda on each file in files
+
+    console.log("test write to file");
+
+    fs.writeFileSync('/mnt/files/' + files[0].name, files[0].content);
+
+    console.log("done writing to file");
+    console.log("done writing modified to file");
+
+    console.log('test read file');
+
+    const f = fs.readFileSync('/mnt/files/' + files[0].name);
 
     // call parsing lambda on each file in files
-    
+    console.log("done reading to modified file");
+    console.log(f);
+
+    const email = await getGithubUserEmail(pullRequest.username);
+    console.log('email: ' + await email);
+    await invokeEmailLambda(pullRequest.username, email, 'fail', '1', pullRequest.repo);
+
     return callback(null, response);
 };
+
+async function getGithubUserEmail(username) {
+
+    const email_url = 'https://api.github.com/users/' + username;
+    return axios.get(email_url, {
+        'headers': {
+            'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
+        }
+    }).then((res) => {
+        return res.data.email;
+    });
+}
+
+async function invokeEmailLambda(username, email, status, numErrs, repoName) {
+
+    console.log("email lambda invoke fn")
+    // These four values need to be passed
+    let emailPayload = {
+        name: username,
+        statVal: status, // pass/fail/error
+        errCount: numErrs,
+        address: email,
+        repoName: repoName
+    }
+    var params = {
+        FunctionName: emailLambdaName, // Name of the function to be called
+        InvocationType: 'RequestResponse', // For synchronous calls
+        LogType: 'Tail', // Get log from called function
+        Payload :JSON.stringify(emailPayload) // The payload sent to the function
+    };
+
+    return lambda.invoke(params, function(err, data) {
+        if (err) {
+          throw err;
+        } else {
+          console.log(emailLambdaName +  'invoked: ' +  data.Payload);
+        }
+      }).promise();
+}
 
 /*
 Returns list of { name: String, path: String, content: base64 }
@@ -88,7 +148,7 @@ function getContent(url) {
             'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
         }
     }).then((res) => {
-        console.log(res.data);
+        // console.log(res.data);
         return {
             'name': res.data.name,
             'path': res.data.path,

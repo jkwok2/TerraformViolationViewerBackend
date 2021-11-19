@@ -4,7 +4,7 @@
 const aws = require("aws-sdk");
 const ses = new aws.SES({ region: "us-east-1" });
 
-module.exports.handler = async function (event) {
+module.exports.emailSender = async function (event) {
   /*
 
   //these four values need to be passed in by call to lambda
@@ -98,7 +98,7 @@ module.exports.handler = async function (event) {
     name = "Kevin"
     statVal = 'pass';
     errCount = '420';
-    address = 'kevinguogm@gmail.com';
+    address = 'megthibodeau@gmail.com';
     repoName = "myRepo";
   }
 
