@@ -5,10 +5,10 @@ drop table if exists Violations;
 create table Users(
     userId varchar(45) primary key not null, 
     email varchar(45) not null,
-    username varchar(45) not null,
+    username varchar(45) default 'n/a',
     givenName varchar(45) not null,
     familyName varchar(45) not null,
-    userRole varchar(45) not null
+    userRole varchar(45) default 'base'
 );
 
 create table Violations(
