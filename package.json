@@ -5,7 +5,9 @@
   "main": "handler.js",
   "dependencies": {
     "aws-sdk": "^2.999.0",
+    "axios": "^0.24.0",
     "express": "^4.17.1",
+    "hcl-to-json": "^0.1.1",
     "joi": "^17.4.2",
     "latest": "^0.2.0",
     "latest-version": "^6.0.0",

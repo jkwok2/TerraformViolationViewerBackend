@@ -14,6 +14,7 @@ var lambda = new aws.Lambda();
 const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 const readFileLambdaName = 'hsbc-backend-app-meg-dev-readFile';
 const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
+const parseFileLambdaName = 'hsbc-backend-app-meg-dev-parseFile';
 
 
 // Change to tr for terraform
@@ -58,45 +59,47 @@ module.exports.webhook = async (event, context, callback) => {
 
     // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
 
-    const dir = '/mnt/files/' + pullRequest.repo + "_" + pullRequest.timestamp + "/";
+    const efsPath = '/mnt/files/' + pullRequest.repo + "_" + pullRequest.timestamp + "/";
     // const path = dir + "/" + event.filename;
-    console.log("dir: " + dir);
+    console.log("efsPath: " + efsPath);
 
 
     var metadataPayload = {username: pullRequest.username, 
                         timestamp: pullRequest.timestamp, 
                         repo: pullRequest.repo, 
-                        path: dir, 
+                        path: efsPath, 
                         originalPaths: []};
 
-    files.forEach(f => metadataPayload.originalPaths.push(dir + "_" + f.name));
+    files.forEach(f => metadataPayload.originalPaths.push(efsPath + f.name));
 
-    console.log(metadataPayload.originalPaths);
+    console.log(efsPath + files[0]);
+
+    console.log(metadataPayload.originalPaths[0]);
 
     // creates metadata file in dir for this PR
     invokeLambda(writeFileLambdaName, {filename: "metadata.json", 
                                         content: metadataPayload, 
-                                        path: dir});
+                                        path: efsPath});
 
-    files.forEach(f => invokeLambda(writeFileLambdaName, {filename: f.name, 
+    files.forEach(f => invokeLambda(writeFileLambdaName, {fileName: f.name, 
                                                             content: f.content, 
-                                                            path: dir + "_" + f.name}));
+                                                            path: efsPath + f.name}));
 
-    // files.forEach(f => invokeLambda(readFileLambdaName, {path: dir + f.name}));
+    files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, efsFilePath: efsPath + f.name, githubFullPath: f.name}));
 
-    const monitorPayload = { dir: dir, 
+    const monitorPayload = { dir: efsPath, 
                             numFiles: files.length}
 
     console.log(monitorPayload);
 
-//check efs
-    if (fs.existsSync(dir)) {
-        filesSoFar = fs.readdirSync(dir);
-        console.log("asdf");
-        console.log(filesSoFar);
-    } else {
-        console.log(dir + " doesn't exist");
-    }
+// //check efs
+//     if (fs.existsSync(dir)) {
+//         filesSoFar = fs.readdirSync(dir);
+//         console.log("asdf");
+//         console.log(filesSoFar);
+//     } else {
+//         console.log(dir + " doesn't exist");
+//     }
 
     // invokeLambda(monitorLambdaName, monitorPayload);
 
