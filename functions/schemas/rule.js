@@ -13,6 +13,7 @@ const ruleSchema = Joi.object({
     not_has_value: Joi.string().min(0).max(100),
     not_has_range_beg: Joi.string().min(0).max(100),
     not_has_range_end: Joi.string().min(0).max(100),
+    status: Joi.string().min(1).max(20)
 });
 
 module.exports = ruleSchema;

@@ -35,7 +35,8 @@ create table Rules(
                       not_has_key varchar(180),
                       not_has_value varchar(180),
                       not_has_range_beg varchar(90),
-                      not_has_range_end varchar(90)
+                      not_has_range_end varchar(90),
+                      status varchar(20)
 );
 
 insert into Users (userId, username, email, givenName, familyName, userRole) values ('111561841222565942402', 'HSBC Violation Viewer', 'hsbcviolationviewer@gmail.com', 'HSBC Violation Viewer', 'HSBC Violation Viewer', 'admin');
@@ -48,10 +49,10 @@ insert into Violations (userId, repoId, prId, filePath, lineNumber, violationTyp
 insert into Violations (userId, repoId, prId, filePath, lineNumber, violationType, violationTime) values ('105989777376658273094', 'R124', '31237', './testfilepath', '123', 'Violation Type 2', '2021-02-13 12:42:56');
 insert into Violations (userId, repoId, prId, filePath, lineNumber, violationType, violationTime) values ('105989777376658273094', 'R126', '31237', './testfilepath', '123', 'Violation Type 4', '2021-04-13 12:21:56');
 
-insert into Rules (aws_resource_type, has, has_key, has_value) values ('aws_elb', TRUE, 'access_logs.enabled', 'true');
-insert into Rules (aws_resource_type, has, has_key, has_value) values ('aws_s3_bucket_public_access_block', TRUE, 'block_public_policy', 'true');
-insert into Rules (aws_resource_type, not_has, not_has_key) value ('aws_instance', TRUE, 'user_data');
-insert into Rules (aws_resource_type, has, has_key, has_value) value ('aws_docdb_cluster_parameter_group', TRUE, 'parameter.audit_logs', 'enable');
-insert into Rules (aws_resource_type, has, has_key) value ('aws_athena_workgroup', TRUE, 'configuration.result_configuration.encryption_configuration');
-insert into Rules (aws_resource_type, has, has_key, has_range_beg, has_range_end) value ('aws_cloudfront_distribution', TRUE, 'default_cache_behavior.viewer_protocol_policy', 'redirect-to-https', 'https-only');
+insert into Rules (aws_resource_type, has, has_key, has_value, status) values ('aws_elb', TRUE, 'access_logs.enabled', 'true', 'active');
+insert into Rules (aws_resource_type, has, has_key, has_value, status) values ('aws_s3_bucket_public_access_block', TRUE, 'block_public_policy', 'true', 'active');
+insert into Rules (aws_resource_type, not_has, not_has_key, status) value ('aws_instance', TRUE, 'user_data', 'active');
+insert into Rules (aws_resource_type, has, has_key, has_value, status) value ('aws_docdb_cluster_parameter_group', TRUE, 'parameter.audit_logs', 'enable', 'active');
+insert into Rules (aws_resource_type, has, has_key, status) value ('aws_athena_workgroup', TRUE, 'configuration.result_configuration.encryption_configuration', 'active');
+insert into Rules (aws_resource_type, has, has_key, has_range_beg, has_range_end, status) value ('aws_cloudfront_distribution', TRUE, 'default_cache_behavior.viewer_protocol_policy', 'redirect-to-https', 'https-only', 'active');
 
