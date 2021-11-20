@@ -3,14 +3,18 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const aws = require('aws-sdk');
+const fs = require('fs');
 
-const invokeLambda = require('functions/utilities/invokeLambda.js')
+const invokeLambda = require('functions/utilities/invokeLambda.js');
+const path = require('path');
 
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
 
 const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 const readFileLambdaName = 'hsbc-backend-app-meg-dev-readFile';
+const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
+
 
 // Change to tr for terraform
 const fileType = '.tf';
@@ -37,9 +41,15 @@ module.exports.webhook = async (event, context, callback) => {
         'url': body.pull_request.url,
         'username': body.pull_request.user.login,
         'repo': body.pull_request.head.repo.name,
-        'repo_owner': body.pull_request.head.repo.owner.login
+        'repo_owner': body.pull_request.head.repo.owner.login,
+        //TODO use this 'timestamp': body.pull_request.updated_at
+        'timestamp': body.pull_request.created_at
         // 'changed_files_num': body.pull_request.changed_files
     }
+
+    // console.log("body.pull_request: " + JSON.stringify(body.pull_request));
+
+    console.log("timestamp: " + pullRequest.timestamp);
 
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
     const files = await getChangedFilesContent(fileUrls);
@@ -48,13 +58,47 @@ module.exports.webhook = async (event, context, callback) => {
 
     // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
 
-    const dir = '/mnt/files/' + pullRequest.pullRequestId;
+    const dir = '/mnt/files/' + pullRequest.repo + "_" + pullRequest.timestamp + "/";
     // const path = dir + "/" + event.filename;
+    console.log("dir: " + dir);
+
+
+    var metadataPayload = {username: pullRequest.username, 
+                        timestamp: pullRequest.timestamp, 
+                        repo: pullRequest.repo, 
+                        path: dir, 
+                        originalPaths: []};
+
+    files.forEach(f => metadataPayload.originalPaths.push(dir + "_" + f.name));
+
+    console.log(metadataPayload.originalPaths);
+
+    // creates metadata file in dir for this PR
+    invokeLambda(writeFileLambdaName, {filename: "metadata.json", 
+                                        content: metadataPayload, 
+                                        path: dir});
 
     files.forEach(f => invokeLambda(writeFileLambdaName, {filename: f.name, 
                                                             content: f.content, 
-                                                            pullRequestId: pullRequest.id, 
-                                                            repoName: pullRequest.repo}));
+                                                            path: dir + "_" + f.name}));
+
+    // files.forEach(f => invokeLambda(readFileLambdaName, {path: dir + f.name}));
+
+    const monitorPayload = { dir: dir, 
+                            numFiles: files.length}
+
+    console.log(monitorPayload);
+
+//check efs
+    if (fs.existsSync(dir)) {
+        filesSoFar = fs.readdirSync(dir);
+        console.log("asdf");
+        console.log(filesSoFar);
+    } else {
+        console.log(dir + " doesn't exist");
+    }
+
+    // invokeLambda(monitorLambdaName, monitorPayload);
 
     return callback(null, response);
 };
@@ -70,6 +114,7 @@ async function getGithubUserEmail(username) {
         return res.data.email;
     });
 }
+
 
 /*
 Returns list of { name: String, path: String, content: base64 }

@@ -70,6 +70,12 @@ functions:
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
+  monitor:
+    handler: functions/monitor.monitor
+    role: lambdaEFSrole
+    fileSystemConfig:
+      localMountPath: ${self:custom.efsMountPath}
+      arn: !GetAtt AccessPointResource.Arn
   users:
     handler: functions/routes/users.handler
     events:

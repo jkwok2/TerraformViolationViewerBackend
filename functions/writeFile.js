@@ -37,8 +37,8 @@ module.exports.writeFile = async (event, context, callback) => {
     console.log("done writing " + path); 
 
     // TODO!!! removes files for testing purposes, belongs somwhere else
-    removeFile(path);
-    console.log(path + "removed"); 
+    // removeFile(path);
+    // console.log(path + "removed"); 
 
     // invokeLambda(readFileLambdaName, path);
     
