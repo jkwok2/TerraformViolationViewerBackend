@@ -25,9 +25,6 @@ create table Violations(
 
 create table Rules(
                       id int primary key not null auto_increment,
-                      rule_name varchar(180),
-                      rule_type varchar(180),
-                      rule_details varchar(180),
                       aws_resource_type varchar(180) not null,
                       has boolean,
                       has_key varchar(180),

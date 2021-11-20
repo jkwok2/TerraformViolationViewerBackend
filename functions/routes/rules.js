@@ -18,8 +18,7 @@ rulesAPI.use((req, res, next) => {
     next();
 });
 
-rulesAPI.get('/rules',
-    async (req, res) => {
+rulesAPI.get('/rules', async (req, res) => {
     const con = initializeConnection();
     con.query(
         'select * from `database-1`.`Rules`',

@@ -76,9 +76,11 @@ functions:
       - http:
           path: /users
           method: ANY
+          cors: true
       - http:
           path: /users/{proxy+}
           method: ANY
+          cors: true
   violations:
     handler: functions/routes/violations.handler
     events:
@@ -87,6 +89,15 @@ functions:
           method: ANY
       - http:
           path: /violations/{proxy+}
+          method: ANY
+  rules:
+    handler: functions/routes/rules.handler
+    events:
+      - http:
+          path: /rules
+          method: ANY
+      - http:
+          path: /rules/{proxy+}
           method: ANY
   emailSender:
     handler: functions/emailSender/emailSender.emailSender
