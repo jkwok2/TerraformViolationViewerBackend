@@ -3,8 +3,6 @@ const express = require('express');
 const userSchema = require('../schemas/user');
 const validateRequest = require('../middlewares/validateRequest');
 const errorHandler = require('../middlewares/errorHandler');
-const CustomError = require('../responses/errors/CustomError');
-const CustomResponse = require('../responses/CustomResponse');
 const initializeConnection = require('./common');
 
 const usersAPI = express();
@@ -53,25 +51,7 @@ usersAPI.post(
                 return res.status(200).send(result);
             }
         })
-        // console.log(req.body.userId);
-        // console.log(req.body.email);
-        // // `${req.body.userId}`, `${req.body.email}`, `${req.body.givenName}`, `${req.body.familyName}`
-        // con.query('Insert into `database-1`.`Users` (userId, email, givenName, familyName) values (req.body.userId, req.body.email, `${req.body.givenName}`, `${req.body.familyName}`)' ,
-        //     function(err, result) {
-        //         if (err) {
-        //             console.log({err});
-        //             con.end();
-        //             return res.status(500).send(err);
-        //         }
-        //         if (result) {
-        //             console.log({result});
-        //             con.end();
-        //             return res.status(200).send(result);
-        //         }
-        //     });
     });
-
-
 
 usersAPI.get(
     '/users/:userId',
