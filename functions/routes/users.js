@@ -25,30 +25,53 @@ usersAPI.post(
     validateRequest(userSchema.userPost),
     async (req, res) => {
         const con = initializeConnection();
-        let existingUser = await con.query('select * from `database-1`.`Users` where userId=' + req.body.userId);
-        if (existingUser) {
-            console.log({ existingUser });
-            con.end();
-            return res.status(200).send(existingUser);
-        } else {
-            console.log(req.body.userId);
-            console.log(req.body.email);
-            con.query('Insert into `database-1`.`Users` (userId, email, givenName, familyName) values (`${req.body.userId}`, `${req.body.email}`, `${req.body.givenName}`, `${req.body.familyName}`)' ,
-                function(err, result) {
-                    if (err) {
-                        console.log({ err });
-                        con.end();
-                        return res.status(500).send(err);
-                    }
-                    if (result) {
-                        console.log({ result });
-                        con.end();
-                        return res.status(200).send(result);
-                    }
-                });
-
-        }
+        con.query('select * from `database-1`.`Users` where userId=' + req.body.userId, function(err, result) {
+            if (err) {
+                console.log({ err });
+                con.end();
+                return res.status(500).send(err);
+            }
+            if (result) {
+                console.log('existing user!!!:')
+                console.log({ result });
+                if(result.length === 0) {
+                    con.query(`Insert into \`database-1\`.\`Users\` (userId, email, givenName, familyName) values ('${req.body.userId}', '${req.body.email}', '${req.body.givenName}', '${req.body.familyName}')` ,
+                    function(err, result) {
+                        if (err) {
+                            console.log({err});
+                            con.end();
+                            return res.status(500).send(err);
+                        }
+                        if (result) {
+                            console.log({result});
+                            con.end();
+                            return res.status(200).send(result);
+                        }
+                    });
+                }
+                con.end();
+                return res.status(200).send(result);
+            }
+        })
+        // console.log(req.body.userId);
+        // console.log(req.body.email);
+        // // `${req.body.userId}`, `${req.body.email}`, `${req.body.givenName}`, `${req.body.familyName}`
+        // con.query('Insert into `database-1`.`Users` (userId, email, givenName, familyName) values (req.body.userId, req.body.email, `${req.body.givenName}`, `${req.body.familyName}`)' ,
+        //     function(err, result) {
+        //         if (err) {
+        //             console.log({err});
+        //             con.end();
+        //             return res.status(500).send(err);
+        //         }
+        //         if (result) {
+        //             console.log({result});
+        //             con.end();
+        //             return res.status(200).send(result);
+        //         }
+        //     });
     });
+
+
 
 usersAPI.get(
     '/users/:userId',
