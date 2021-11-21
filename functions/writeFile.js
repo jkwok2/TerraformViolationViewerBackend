@@ -27,16 +27,19 @@ module.exports.writeFile = async (event, context, callback) => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, true);
     }
+
     if (fs.existsSync(filePath))
     {
-        // remove for testing purposes
+        // removes
         removeFile(filePath);
-        console.log(filePath + "existted already, now removed"); 
-    }
+        console.log(filePath + "existed already, now removed"); 
+    } 
 
-    // console.log("write to " + filePath);
-    // fs.writeFileSync(filePath, event.fileContent);
-    // console.log("done writing " + filePath); 
+    if (!fs.existsSync(filePath)) {
+        console.log("writeFile lambda to " + filePath);
+        fs.writeFileSync(filePath, event.fileContent);
+        console.log("writeFile done writing " + filePath); 
+    }
 
 
 

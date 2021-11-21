@@ -3,6 +3,8 @@ const fs = require('fs')
 const hcltojson = require('hcl-to-json');
 const { InvalidTerraformFileError, LineNumberNotFoundError, GrepError } = require("./additionalViolationErrors");
 
+const invokeLambda = require('functions/utilities/invokeLambda.js');
+const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 
 aws.config.region = process.region;
 const spawn = require('child_process').spawn;
@@ -180,11 +182,18 @@ module.exports.parseFile = async (event, context, callback) => {
     console.log(`start reading file ${fileName}`);
     console.log(`start reading file ${filePath}`);
 
-    const terraformFile = fs.readFileSync(filePath);
+    // hacky way to get around race condition if file doesn't exist in EFS yet
+    var fileNotFound = true;
+    while (fileNotFound) {
+        if (fs.existsSync(filePath)) {
+            file.content = fs.readFileSync(filePath);
+            fileNotFound = false;
+            console.log("done reading file " + fileName);
+            // console.log(`Terraform file read: ${terraformFile}`);
+        }
+    }
 
-    console.log("done reading file " + fileName);
-    console.log(`Terraform file read: ${terraformFile}`);
-    file.content = terraformFile;
+    // file.content = terraformFile;
     file.efsFullPath = filePath;
     file.githubFullPath = githubFullPath;
     Object.freeze(file);
@@ -267,7 +276,19 @@ module.exports.parseFile = async (event, context, callback) => {
             violations: violationsFound,
         }
 
-        const writePath = `${fileName}_result`
+        console.log("dir: " + dir);
+        const writePath = dir + "/result_" + fileName;
+
+
+        console.log("(lambda) writing to  " + dir + "/" + fileName);
+        invokeLambda(writeFileLambdaName, {fileName: "lambda_result_" + fileName, 
+                                            content: result, 
+                                            dir: dir} );
+        console.log("lambda call done");
+
+
+        console.log("writing to " + writePath);
         fs.writeFileSync(writePath, result);
+        console.log("wrote " + writePath);
     }
 };
