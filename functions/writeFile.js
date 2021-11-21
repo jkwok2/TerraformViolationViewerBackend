@@ -34,9 +34,9 @@ module.exports.writeFile = async (event, context, callback) => {
         console.log(filePath + "existted already, now removed"); 
     }
 
-    console.log("write to " + filePath);
-    fs.writeFileSync(filePath, event.fileContent);
-    console.log("done writing " + filePath); 
+    // console.log("write to " + filePath);
+    // fs.writeFileSync(filePath, event.fileContent);
+    // console.log("done writing " + filePath); 
 
 
 

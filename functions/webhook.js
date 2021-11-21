@@ -76,7 +76,7 @@ module.exports.webhook = async (event, context, callback) => {
     console.log(metadataPayload.originalPaths[0]);
 
     // creates metadata file in dir for this PR
-    invokeLambda(writeFileLambdaName, {filename: "metadata.json", 
+    invokeLambda(writeFileLambdaName, {fileName: "metadata.json", 
                                         content: metadataPayload, 
                                         dir: efsPath, 
                                         githubFullPath: ""});

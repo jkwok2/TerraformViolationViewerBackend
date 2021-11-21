@@ -267,7 +267,7 @@ module.exports.parseFile = async (event, context, callback) => {
             violations: violationsFound,
         }
 
-        const writePath = `${fileName}`
+        const writePath = `${fileName}_result`
         fs.writeFileSync(writePath, result);
     }
 };
