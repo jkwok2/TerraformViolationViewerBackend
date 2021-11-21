@@ -184,16 +184,17 @@ module.exports.parseFile = async (event, context, callback) => {
 
     // hacky way to get around race condition if file doesn't exist in EFS yet
     var fileNotFound = true;
+    var terraformFile;
     while (fileNotFound) {
         if (fs.existsSync(filePath)) {
-            file.content = fs.readFileSync(filePath);
+            terraformFile = fs.readFileSync(filePath);
             fileNotFound = false;
             console.log("done reading file " + fileName);
             // console.log(`Terraform file read: ${terraformFile}`);
         }
     }
 
-    // file.content = terraformFile;
+    file.content = terraformFile;
     file.efsFullPath = filePath;
     file.githubFullPath = githubFullPath;
     Object.freeze(file);
@@ -280,11 +281,11 @@ module.exports.parseFile = async (event, context, callback) => {
         const writePath = dir + "/result_" + fileName;
 
 
-        console.log("(lambda) writing to  " + dir + "/" + fileName);
-        invokeLambda(writeFileLambdaName, {fileName: "lambda_result_" + fileName, 
-                                            content: result, 
-                                            dir: dir} );
-        console.log("lambda call done");
+        // console.log("(lambda) writing to  " + dir + "/" + fileName);
+        // invokeLambda(writeFileLambdaName, {fileName: "lambda_result_" + fileName, 
+        //                                     content: result, 
+        //                                     dir: dir} );
+        // console.log("lambda call done");
 
 
         console.log("writing to " + writePath);
