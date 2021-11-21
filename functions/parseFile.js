@@ -172,19 +172,20 @@ module.exports.parseFile = async (event, context, callback) => {
     violationsFound = [];
     errorsEncountered = [];
 
-    const efsFilePath = event.efsFilePath;
     const fileName = event.fileName;
+    const dir = event.dir;
     const githubFullPath = event.githubFullPath;
+    const filePath = dir + "/" + fileName;
 
     console.log(`start reading file ${fileName}`);
-    console.log(`start reading file ${efsFilePath}`);
-    
-    const terraformFile = fs.readFileSync(efsFilePath);
+    console.log(`start reading file ${filePath}`);
+
+    const terraformFile = fs.readFileSync(filePath);
 
     console.log("done reading file " + fileName);
     console.log(`Terraform file read: ${terraformFile}`);
     file.content = terraformFile;
-    file.efsFullPath = `${fileName}`;
+    file.efsFullPath = filePath;
     file.githubFullPath = githubFullPath;
     Object.freeze(file);
 

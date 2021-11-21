@@ -59,7 +59,7 @@ module.exports.webhook = async (event, context, callback) => {
 
     // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
 
-    const efsPath = '/mnt/files/' + pullRequest.repo + "_" + pullRequest.timestamp + "/";
+    const efsPath = '/mnt/files/' + pullRequest.repo;
     // const path = dir + "/" + event.filename;
     console.log("efsPath: " + efsPath);
 
@@ -72,20 +72,25 @@ module.exports.webhook = async (event, context, callback) => {
 
     files.forEach(f => metadataPayload.originalPaths.push(efsPath + f.name));
 
-    console.log(efsPath + files[0]);
 
     console.log(metadataPayload.originalPaths[0]);
 
     // creates metadata file in dir for this PR
     invokeLambda(writeFileLambdaName, {filename: "metadata.json", 
                                         content: metadataPayload, 
-                                        path: efsPath});
+                                        dir: efsPath, 
+                                        githubFullPath: ""});
 
     files.forEach(f => invokeLambda(writeFileLambdaName, {fileName: f.name, 
                                                             content: f.content, 
-                                                            path: efsPath + f.name}));
+                                                            dir: efsPath, 
+                                                            pullRequestId: pullRequest.id,
+                                                            githubFullPath: ""}));
 
-    files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, efsFilePath: efsPath + f.name, githubFullPath: f.name}));
+    files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, 
+                                                            dir: efsPath,
+                                                            efsFilePath: efsPath + "/" + f.name, 
+                                                            githubFullPath: f.name}));
 
     const monitorPayload = { dir: efsPath, 
                             numFiles: files.length}
