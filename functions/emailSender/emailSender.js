@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 const aws = require("aws-sdk");
+const axios = require('axios');
 const ses = new aws.SES({ region: "us-east-1" });
 
 module.exports.emailSender = async function (event) {
@@ -88,19 +89,26 @@ module.exports.emailSender = async function (event) {
   let address
   let repoName
 
-  if (event.name && event.statVal && event.errCount && event.address && event.repoName) {
+  if (event.name && event.statVal && event.errCount && event.repoName) {
     name = event.name;
     statVal = event.statVal;
     errCount = event.errCount;
-    address = event.address;
     repoName = event.repoName
+    console.log("got stuff from monitor");
   } else {
     name = "Kevin"
     statVal = 'pass';
     errCount = '420';
     address = 'megthibodeau@gmail.com';
     repoName = "myRepo";
+    console.log("missing stuff from monitor");
   }
+
+  console.log("email sender lambda");
+  console.log("name: " + name);
+  console.log("statVal: " + statVal);
+  console.log("errCount: " + errCount);
+  console.log("repoName: " + repoName);
 
   let temp;
   let tempData;
@@ -122,6 +130,9 @@ module.exports.emailSender = async function (event) {
       break;
   };
 
+
+  address = await getGithubUserEmail(name);
+
   let params = {
     Source: "Group 4 <cpsc319fall2021@gmail.com>",
     Template: temp,
@@ -130,5 +141,21 @@ module.exports.emailSender = async function (event) {
     },
     TemplateData: tempData
   };
+  console.log("sending email..");
+  console.log("address: " + address);
   return ses.sendTemplatedEmail(params).promise()
 };
+
+async function getGithubUserEmail(username) {
+
+  console.log("requesting github email");
+
+  const email_url = 'https://api.github.com/users/' + username;
+  return axios.get(email_url, {
+      'headers': {
+          'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
+      }
+  }).then((res) => {
+      return res.data.email;
+  });
+}
