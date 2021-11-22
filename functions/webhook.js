@@ -41,6 +41,7 @@ module.exports.webhook = async (event, context, callback) => {
         'number': body.number,
         'url': body.pull_request.url,
         'username': body.pull_request.user.login,
+        'userid': body.pull_request.user.id,
         'repo': body.pull_request.head.repo.name,
         'repo_owner': body.pull_request.head.repo.owner.login,
         //TODO use this 'timestamp': body.pull_request.updated_at
@@ -48,9 +49,9 @@ module.exports.webhook = async (event, context, callback) => {
         // 'changed_files_num': body.pull_request.changed_files
     }
 
-    // console.log("body.pull_request: " + JSON.stringify(body.pull_request));
-
     console.log("timestamp: " + pullRequest.timestamp);
+    console.log("body.pull_request.id: " + pullRequest.id);
+    console.log("body.pull_request.user.id: " + body.pull_request.user.id);
 
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
     const files = await getChangedFilesContent(fileUrls);
@@ -96,7 +97,13 @@ module.exports.webhook = async (event, context, callback) => {
                                 userid: pullRequest.userid, 
                                 repoName: pullRequest.repo,
                                 dir: efsPath, 
-                                numFiles: files.length}  // parseFile creates duplicate for each file, plus metadatafile
+                                numFiles: files.length * 2 + 1}  // parseFile creates duplicate for each file, plus metadatafile
+
+    var numFiles = files.length;
+    var newNumFiles = numFiles * 2 + 1;
+
+    console.log("file.length: " +  numFiles);
+    console.log("file.length * 2 + 1: " +  newNumFiles);
 
     invokeLambda(monitorLambdaName, monitorPayload);
 
@@ -149,7 +156,7 @@ function getContent(url) {
             'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
         }
     }).then((res) => {
-        // console.log(res.data);
+        console.log(res.data);
         return {
             'name': res.data.name,
             'path': res.data.path,

@@ -40,37 +40,6 @@ module.exports.writeFile = async (event, context, callback) => {
         fs.writeFileSync(filePath, event.fileContent);
         console.log("writeFile done writing " + filePath); 
     }
-
-
-
-    // PR<ID>/filename
-
-    // const dir = event.dir;
-    // const filePath = dir + "/" + event.fileName;
-
-    // console.log("filePath: " + filePath);
-    // console.log("dir: " + dir);
-
-    // if (!fs.existsSync(dir)) {
-    //     fs.mkdirSync(dir, true);
-    //     console.log("created directory " + dir)
-    // }
-    // // if (fs.existsSync(filePath))
-    // // {
-    // //     // remove for testing purposes
-    // //     removeFile(filePath);
-    // //     console.log(filePath + " existed already, now removed"); 
-    // // }
-
-    // console.log("write to " + filePath);
-    // fs.writeFileSync(filePath, event.fileContent);
-    // console.log("done writing " + filePath); 
-
-    // TODO!!! removes files for testing purposes, belongs somwhere else
-    // removeFile(path);
-    // console.log(path + "removed"); 
-
-    // invokeLambda(readFileLambdaName, path);
     
     return callback(null, response);
 };

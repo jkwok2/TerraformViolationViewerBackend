@@ -113,6 +113,7 @@ functions:
           method: ANY
   emailSender:
     handler: functions/emailSender/emailSender.emailSender
+    maximumRetryAttempts: 1
 
 resources:
   Resources:

@@ -16,13 +16,15 @@ module.exports.monitor = async (event, context, callback) => {
     const numFiles = event.numFiles;
     var filesSoFar = [];
 
+    var c = 0;
+
     while (filesSoFar.length < numFiles) {
 
         //check efs
         if (fs.existsSync(dir)) {
             filesSoFar = fs.readdirSync(dir);
             console.log("asdf");
-            console.log(filesSoFar);
+            console.log("fileSoFar.length: " + filesSoFar.length);
         } else {
             console.log(dir + "doesn't exist");
 
@@ -32,6 +34,11 @@ module.exports.monitor = async (event, context, callback) => {
             };
 
             return callback(null, directoryNotFoundResponse);
+        }
+
+        c++;
+        if (c > 10) {
+            break;
         }
     }
 
