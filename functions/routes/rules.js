@@ -42,9 +42,10 @@ rulesAPI.patch(
     async (req, res) => {
         const con = initializeConnection();
         con.query(
-            `update \`database-1\`.\`Rules\` set status= '${req.params.status}' where ruleId= '${req.params.ruleId}'`,
+            `update \`database-1\`.\`Rules\` set status= '${req.body.status}' where ruleId= '${req.params.ruleId}'`,
             function (error, result) {
                 if (error) {
+                    console.log(req.body.status, req.params.ruleId);
                     console.log({ error });
                     con.end();
                     return res.status(500).send(error);
