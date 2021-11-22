@@ -36,4 +36,27 @@ rulesAPI.get('/rules', async (req, res) => {
     );
 });
 
+rulesAPI.patch(
+    '/rules/:ruleId',
+    validateRequest(ruleSchema.updateRuleById, 'params'),
+    async (req, res) => {
+        const con = initializeConnection();
+        con.query(
+            `update \`database-1\`.\`Rules\` set status= '${req.params.status}' where ruleId= '${req.params.ruleId}'`,
+            function (error, result) {
+                if (error) {
+                    console.log({ error });
+                    con.end();
+                    return res.status(500).send(error);
+                }
+                if (result) {
+                    console.log({ result });
+                    con.end();
+                    return res.status(200).send(result);
+                }
+            }
+        );
+    }
+);
+
 module.exports.handler = sls(rulesAPI);
