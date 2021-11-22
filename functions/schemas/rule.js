@@ -1,19 +1,19 @@
 const Joi = require('joi');
 
 const ruleSchema = Joi.object({
-    ruleId: Joi.string().min(1).max(50).required(),
-    aws_resource_type: Joi.string().min(0).max(100),
-    has: Joi.boolean(),
-    has_key: Joi.string().min(0).max(100),
-    has_value: Joi.string().min(0).max(100),
-    has_range_beg: Joi.string().min(0).max(100),
-    has_range_end: Joi.string().min(0).max(100),
-    not_has: Joi.boolean(),
-    not_has_key: Joi.string().min(0).max(100),
-    not_has_value: Joi.string().min(0).max(100),
-    not_has_range_beg: Joi.string().min(0).max(100),
-    not_has_range_end: Joi.string().min(0).max(100),
-    status: Joi.string().min(1).max(20)
+    ruleId: Joi.number().integer().min(1).max(50).required(),
+    fileId: Joi.string().min(1).max(255).required(),
+    aws_resource: Joi.string().min(1).max(90).required(),
+    severity: Joi.string().min(1).max(45).required(),
+    category: Joi.string().min(0).max(45).required(),
+    description: Joi.string().min(0).max(255).required(),
+    content: Joi.string().min(0).max(10000).required(),
+    status: Joi.string().min(1).max(45),
+    dateAdded: Joi.date().required()
 });
 
-module.exports = ruleSchema;
+const updateRuleById = Joi.object({
+    ruleId: Joi.string().min(1).max(50).required(),
+});
+
+module.exports = { ruleSchema, updateRuleById };

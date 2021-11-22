@@ -3,40 +3,33 @@ drop table if exists Users;
 drop table if exists Violations;
 drop table if exists Rules;
 
-create table Users(
-                      userId varchar(45) primary key not null,
-                      email varchar(45) not null,
-                      username varchar(45),
-                      givenName varchar(45) not null,
-                      familyName varchar(45) not null,
-                      userRole varchar(45)
+create table Users(userId varchar(45) primary key not null,
+                   email varchar(90) not null,
+                   username varchar(45),
+                   givenName varchar(45) not null,
+                   familyName varchar(45) not null,
+                   userRole varchar(45)
 );
 
-create table Violations(
-                           id int primary key not null auto_increment,
-                           userId varchar(45) not null,
-                           repoId varchar(45) not null,
-                           prId varchar(45) not null,
-                           filePath varchar(45) not null,
-                           lineNumber int not null,
-                           violationType varchar(45) not null,
-                           violationTime datetime not null
+create table Violations(violationId int primary key not null auto_increment,
+                        userId varchar(45) not null,
+                        repoId varchar(45) not null,
+                        prId varchar(45) not null,
+                        filePath varchar(120) not null,
+                        lineNumber int not null,
+                        violationType varchar(45) not null,
+                        violationTime datetime not null
 );
 
-create table Rules(
-                      id int primary key not null auto_increment,
-                      aws_resource_type varchar(180) not null,
-                      has boolean,
-                      has_key varchar(180),
-                      has_value varchar(180),
-                      has_range_beg varchar(90),
-                      has_range_end varchar(90),
-                      not_has boolean,
-                      not_has_key varchar(180),
-                      not_has_value varchar(180),
-                      not_has_range_beg varchar(90),
-                      not_has_range_end varchar(90),
-                      status varchar(20)
+create table Rules(ruleId int primary key not null auto_increment,
+                   fileId  varchar(255) not null,
+                   awsresource varchar(90) not null,
+                   severity varchar(45) not null,
+                   category varchar(45) not null,
+                   status varchar(45) not null,
+                   description varchar(255),
+                   dateAdded date not null,
+                   content TEXT not null
 );
 
 insert into Users (userId, username, email, givenName, familyName, userRole) values ('111561841222565942402', 'HSBC Violation Viewer', 'hsbcviolationviewer@gmail.com', 'HSBC Violation Viewer', 'HSBC Violation Viewer', 'admin');
@@ -49,10 +42,9 @@ insert into Violations (userId, repoId, prId, filePath, lineNumber, violationTyp
 insert into Violations (userId, repoId, prId, filePath, lineNumber, violationType, violationTime) values ('105989777376658273094', 'R124', '31237', './testfilepath', '123', 'Violation Type 2', '2021-02-13 12:42:56');
 insert into Violations (userId, repoId, prId, filePath, lineNumber, violationType, violationTime) values ('105989777376658273094', 'R126', '31237', './testfilepath', '123', 'Violation Type 4', '2021-04-13 12:21:56');
 
-insert into Rules (aws_resource_type, has, has_key, has_value, status) values ('aws_elb', TRUE, 'access_logs.enabled', 'true', 'active');
-insert into Rules (aws_resource_type, has, has_key, has_value, status) values ('aws_s3_bucket_public_access_block', TRUE, 'block_public_policy', 'true', 'active');
-insert into Rules (aws_resource_type, not_has, not_has_key, status) value ('aws_instance', TRUE, 'user_data', 'active');
-insert into Rules (aws_resource_type, has, has_key, has_value, status) value ('aws_docdb_cluster_parameter_group', TRUE, 'parameter.audit_logs', 'enable', 'active');
-insert into Rules (aws_resource_type, has, has_key, status) value ('aws_athena_workgroup', TRUE, 'configuration.result_configuration.encryption_configuration', 'active');
-insert into Rules (aws_resource_type, has, has_key, has_range_beg, has_range_end, status) value ('aws_cloudfront_distribution', TRUE, 'default_cache_behavior.viewer_protocol_policy', 'redirect-to-https', 'https-only', 'active');
+insert into Rules (fileId, awsresource, severity, category, description, dateAdded, content, status) values ('F1','aws_elb','S1', 'C1', 'abc', '2021-06-13', 'content of F1', 'active');
+insert into Rules (fileId, awsresource, severity, category, description, dateAdded, content, status) values ('F2', 'aws_s3_bucket_public_access_block', 'S2', 'C2', 'def', '2020-10-12', 'content of F2','active');
+insert into Rules (fileId, awsresource, severity, category, description, dateAdded, content, status) values ('F3','aws_instance', 'S3', 'C1', 'ghi', '2017-02-21', 'content of F3', 'active');
+insert into Rules (fileId, awsresource, severity, category, description, dateAdded, content, status) values ('F4', 'aws_docdb_cluster_parameter_group', 'S4', 'C1', 'jkl', '2018-04-18', 'content of F4', 'active');
+
 
