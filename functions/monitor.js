@@ -25,6 +25,13 @@ module.exports.monitor = async (event, context, callback) => {
             console.log(filesSoFar);
         } else {
             console.log(dir + "doesn't exist");
+
+            const directoryNotFoundResponse = {
+                statusCode: 503,
+                body: "directoryNotFound",
+            };
+
+            return callback(null, directoryNotFoundResponse);
         }
     }
 
@@ -32,15 +39,21 @@ module.exports.monitor = async (event, context, callback) => {
     console.log(filesSoFar);
 
 
-    // let emailPayload = {
-    //     name: "",           // name of recipient
-    //     statVal: "",        // pass/fail/error
-    //     errCount: "",       // number of violations
-    //     address: "",        // email address of recipient
-    //     repoName: ""        // name of pr repo
-    // }
+    let emailPayload = {
+        name: event.username,           // name of recipient
+        statVal: "pass",        // pass/fail/error
+        errCount: "1",       // number of violations
+        repoName: event.repoName        // name of pr repo
+    }
 
-    // invokeLambda(emailLambdaName, emailPayload)
+    invokeLambda(emailLambdaName, emailPayload)
     
+    const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+            input: event,
+        }),
+    };
+
     return callback(null, response);
 };

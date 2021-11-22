@@ -92,37 +92,18 @@ module.exports.webhook = async (event, context, callback) => {
                                                             efsFilePath: efsPath + "/" + f.name, 
                                                             githubFullPath: f.name}));
 
-    const monitorPayload = { dir: efsPath, 
-                            numFiles: files.length}
+    const monitorPayload = { username: pullRequest.username, 
+                                userid: pullRequest.userid, 
+                                repoName: pullRequest.repo,
+                                dir: efsPath, 
+                                numFiles: files.length}  // parseFile creates duplicate for each file, plus metadatafile
+
+    invokeLambda(monitorLambdaName, monitorPayload);
 
     console.log(monitorPayload);
 
-// //check efs
-//     if (fs.existsSync(dir)) {
-//         filesSoFar = fs.readdirSync(dir);
-//         console.log("asdf");
-//         console.log(filesSoFar);
-//     } else {
-//         console.log(dir + " doesn't exist");
-//     }
-
-    // invokeLambda(monitorLambdaName, monitorPayload);
-
     return callback(null, response);
 };
-
-async function getGithubUserEmail(username) {
-
-    const email_url = 'https://api.github.com/users/' + username;
-    return axios.get(email_url, {
-        'headers': {
-            'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
-        }
-    }).then((res) => {
-        return res.data.email;
-    });
-}
-
 
 /*
 Returns list of { name: String, path: String, content: base64 }
