@@ -30,3 +30,10 @@ function initializeConnection() {
 }
 
 module.exports = initializeConnection;
+
+
+// const con = initializeConnection();
+// con.query('SET GLOBAL connect_timeout=7200');
+// con.query('SET GLOBAL interactive_timeout=7200');
+// con.query('SET GLOBAL wait_timeout=7200');
+// con.end();

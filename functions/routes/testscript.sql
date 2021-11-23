@@ -26,3 +26,5 @@ SELECT * FROM `database-1`.`Violations` GROUP BY violationType;
 
 -- SELECT *, COUNT(userId) FROM `database-1`.`Violations` GROUP BY userId;
 -- SELECT COUNT(*), userId FROM `database-1`.`Violations` GROUP BY userId;
+
+

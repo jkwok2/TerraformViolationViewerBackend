@@ -18,6 +18,7 @@ usersAPI.use((req, res, next) => {
     next();
 });
 
+
 usersAPI.post(
     '/users',
     validateRequest(userSchema.userPost),
