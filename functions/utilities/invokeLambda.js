@@ -12,8 +12,6 @@ var lambda = new aws.Lambda();
 */
 const invokeLambda = (lambdaName, payload) => {
 
-    console.log("invokeLambda...");
-
     var params = {
         FunctionName: lambdaName, // Name of the function to be called
         InvocationType: 'Event', // For synchronous calls
@@ -22,11 +20,11 @@ const invokeLambda = (lambdaName, payload) => {
     };
 
     return lambda.invoke(params, function(err, data) {
-        console.log("Invoking " + params.FunctionName + "...");
         if (err) {
+            console.log(`Error when invoking ${params.FunctionName}`);
             throw err;
         } else {
-            console.log(params.FunctionName +  "invoked")
+            console.log(`${params.FunctionName} invoked`)
         }
       }).promise();
 };

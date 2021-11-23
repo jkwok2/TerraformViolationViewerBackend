@@ -275,18 +275,10 @@ module.exports.parseFile = async (event, context, callback) => {
         const result = {
             errors: errorsEncountered,
             violations: violationsFound,
-        }
+        };
 
         console.log("dir: " + dir);
         const writePath = dir + "/result_" + fileName;
-
-
-        // console.log("(lambda) writing to  " + dir + "/" + fileName);
-        // invokeLambda(writeFileLambdaName, {fileName: "lambda_result_" + fileName, 
-        //                                     content: result, 
-        //                                     dir: dir} );
-        // console.log("lambda call done");
-
 
         console.log("writing to " + writePath);
         fs.writeFileSync(writePath, result);
