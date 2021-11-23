@@ -29,9 +29,8 @@ create table Rules(ruleId int primary key not null auto_increment,
                    category varchar(45) not null,
                    status varchar(45) not null,
                    description varchar(255),
-                   dateAdded date not null,
+                   dateAdded datetime,
                    content TEXT not null
-
 );
 
 insert into Users (userId, username, email, givenName, familyName, userRole) values ('111561841222565942402', 'HSBC Violation Viewer', 'hsbcviolationviewer@gmail.com', 'HSBC Violation Viewer', 'HSBC Violation Viewer', 'admin');
@@ -44,4 +43,45 @@ insert into Violations (userId, repoId, prId, filePath, lineNumber, violationTyp
 insert into Violations (userId, repoId, prId, filePath, lineNumber, violationType, violationTime, dateFound) values ('105989777376658273094', 'R124', '31237', './testfilepath', '123', 'Violation Type 2', '2021-02-13 12:42:56', '2020-05-20');
 insert into Violations (userId, repoId, prId, filePath, lineNumber, violationType, violationTime, dateFound) values ('105989777376658273094', 'R126', '31237', './testfilepath', '123', 'Violation Type 4', '2021-04-13 12:21:56', '2020-08-21');
 
-insert into Rules (fileId, awsresource, severity, category, status, description, dateAdded, content) values ()
+INSERT INTO Rules (fileId,awsresource,severity,category,status,description, dateAdded, content) VALUES
+('bc_aws_s3_20.yaml','aws_s3_bucket_public_access_block','MEDIUM','STORAGE','active',NULL,'2021-11-13 12:21:56','resource: aws_s3_bucket_public_access_block
+severity: MEDIUM
+category: STORAGE
+has:
+  - key: "block_public_policy"
+    value: true
+'),
+('bc_aws_s3_20.yaml','aws_s3_bucket_public_access_block','MEDIUM','STORAGE','active',NULL,'2021-11-14 12:21:56','resource: aws_s3_bucket_public_access_block
+severity: MEDIUM
+category: STORAGE
+has:
+  - key: "block_public_policy"
+    value: true
+'),
+('ensure-docdb-has-audit-logs-enabled.yaml','aws_docdb_cluster_parameter_group','LOW','STORAGE','active',NULL,'2021-11-15 12:21:56','resource: aws_docdb_cluster_parameter_group
+severity: LOW
+category: STORAGE
+has:
+  - key: "parameter.audit_logs"
+    value: "enable"
+'),
+('s3_7-acl-write-permissions-aws.yaml','aws_s3_bucket.data','CRITICAL','STORAGE','active',NULL,'2021-11-16 12:21:56','resource: aws_s3_bucket.data
+severity: CRITICAL
+category: STORAGE
+has_not:
+  - key: "acl"
+    value: "public-write"
+'),
+('networking_31.yaml','aws_security_group','LOW','NETWORKING','active',NULL,'2021-11-17 12:21:56','resource: aws_security_group
+severity: LOW
+category: NETWORKING
+has:
+  - key: "ingress.description"
+'),
+('bc_aws_logging_24.yaml','aws_elb','HIGH','LOGGING','active',NULL,'2021-11-18 12:21:56','resource: aws_elb
+severity: HIGH
+category: LOGGING
+has:
+  - key: "access_logs.enabled"
+    value: true
+');
