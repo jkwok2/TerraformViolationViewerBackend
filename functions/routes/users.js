@@ -106,6 +106,28 @@ usersAPI.get(
     }
 );
 
+usersAPI.get(
+    '/users/:username',
+    async (req, res) => {
+        const con = initializeConnection();
+        con.query(
+            'select email from `database-1`.`Users` where username=' + req.params.username,
+            function (error, result) {
+                if (error) {
+                    console.log({ error });
+                    con.end();
+                    return res.status(500).send(error);
+                }
+                if (result) {
+                    console.log({ result });
+                    con.end();
+                    return res.status(200).send(result);
+                }
+            }
+        );
+    }
+);
+
 
 usersAPI.use(errorHandler);
 
