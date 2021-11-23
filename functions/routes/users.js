@@ -18,6 +18,12 @@ usersAPI.use((req, res, next) => {
     next();
 });
 
+const con = initializeConnection();
+con.query('SET GLOBAL connect_timeout=7200');
+con.query('SET GLOBAL interactive_timeout=7200');
+con.query('SET GLOBAL wait_timeout=7200');
+con.end();
+
 
 usersAPI.post(
     '/users',
@@ -30,11 +36,12 @@ usersAPI.post(
                 con.end();
                 return res.status(500).send(err);
             }
-            if (result) {
-                console.log('existing user!!!:')
-                console.log({ result });
-                if(result.length === 0) {
-                    con.query(`Insert into \`database-1\`.\`Users\` (userId, email, givenName, familyName) values ('${req.body.userId}', '${req.body.email}', '${req.body.givenName}', '${req.body.familyName}')` ,
+            if (result && result.length !== 0) {
+                con.end();
+                return res.status(200).send(result);
+
+            } else {
+                con.query(`Insert into \`database-1\`.\`Users\` (userId, email, givenName, familyName, userRole) values ('${req.body.userId}', '${req.body.email}', '${req.body.givenName}', '${req.body.familyName}', '${req.body.userRole}')` ,
                     function(err, result) {
                         if (err) {
                             console.log({err});
@@ -47,12 +54,34 @@ usersAPI.post(
                             return res.status(200).send(result);
                         }
                     });
-                }
-                con.end();
-                return res.status(200).send(result);
             }
         })
     });
+
+usersAPI.patch(
+    '/users/:userId',
+    validateRequest(userSchema.userUpdateById, 'params'),
+    async (req, res) => {
+        const con = initializeConnection();
+        console.log(req.body.username);
+        console.log(req.params.userId);
+        con.query(
+            `update \`database-1\`.\`Users\` set username= '${req.body.username}' where userId= '${req.params.userId}'`,
+            function (error, result) {
+                if (error) {
+                    console.log({ error });
+                    con.end();
+                    return res.status(500).send(error);
+                }
+                if (result) {
+                    console.log({result});
+                    con.end();
+                    return res.status(200).send(result);
+                }
+            }
+        );
+    }
+);
 
 usersAPI.get(
     '/users/:userId',
@@ -76,6 +105,7 @@ usersAPI.get(
         );
     }
 );
+
 
 usersAPI.use(errorHandler);
 
