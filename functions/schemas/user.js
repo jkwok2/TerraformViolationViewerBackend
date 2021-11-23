@@ -9,8 +9,12 @@ const userPost = Joi.object({
   userRole: Joi.string().min(1).max(90).valid('admin', 'base'),
 });
 
+const userUpdateById = Joi.object({
+  userId: Joi.string().min(1).max(50).required(),
+});
+
 const userGetById = Joi.object({
   userId: Joi.string().min(1).max(50).required(),
 });
 
-module.exports = { userPost, userGetById };
+module.exports = { userPost, userGetById, userUpdateById};

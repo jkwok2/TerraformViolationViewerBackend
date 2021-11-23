@@ -1,3 +1,5 @@
+org: naztazeem
+app: hsbc-backend-app-meg
 # Welcome to Serverless!
 #
 # This file is the main config file for your service.
@@ -88,11 +90,9 @@ functions:
       - http:
           path: /users
           method: ANY
-          cors: true
       - http:
           path: /users/{proxy+}
           method: ANY
-          cors: true
   violations:
     handler: functions/routes/violations.handler
     events:
