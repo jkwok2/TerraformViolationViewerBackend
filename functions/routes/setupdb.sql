@@ -33,7 +33,7 @@ create table Rules(ruleId int primary key not null auto_increment,
                    content TEXT not null
 );
 
-insert into Users (userId, username, email, givenName, familyName, userRole) values ('111561841222565942402', 'HSBC Violation Viewer', 'hsbcviolationviewer@gmail.com', 'HSBC Violation Viewer', 'HSBC Violation Viewer', 'admin');
+insert into Users (userId, username, email, givenName, familyName, userRole) values ('111561841222565942402', 'ViolationViewer', 'hsbcviolationviewer@gmail.com', 'HSBC Violation Viewer', 'HSBC Violation Viewer', 'admin');
 insert into Users (userId, username, email, givenName, familyName, userRole) values ('105989777376658273094', 'GokceDilek', 'cpsc319.fall2021@gmail.com', 'Gokce', 'Dilek', 'base');
 
 insert into Violations (username, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('ViolationViewer', 'R123', '31234', './testfilepath', '123', 1, '2020-08-24 13:45:23', '2020-08-24');
