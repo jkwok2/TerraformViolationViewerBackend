@@ -18,7 +18,7 @@ violationsAPI.use((req, res, next) => {
 violationsAPI.get('/violations', async (req, res) => {
     const con = initializeConnection();
     con.query(
-        'select * from `database-1`.`Violations`',
+        'select v.violationId, r.ruleId, v.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -36,7 +36,7 @@ violationsAPI.get('/violations', async (req, res) => {
 violationsAPI.get('/violations/repo', async (req, res) => {
     const con = initializeConnection();
     con.query(
-        'SELECT COUNT(*) as numberOfViolations, repoId FROM `database-1`.`Violations` GROUP BY repoId',
+        'select count(*) as numOfViolations, repoId FROM `database-1`.`Violations` GROUP BY repoId',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -54,7 +54,7 @@ violationsAPI.get('/violations/repo', async (req, res) => {
 violationsAPI.get('/violations/type', async (req, res, next) => {
     const con = initializeConnection();
     con.query(
-        'SELECT COUNT(*) as numberOfViolations, violationType FROM `database-1`.`Violations` GROUP BY violationType',
+        'select count(*) as numOfViolation, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId group by r.violationCategory',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -72,7 +72,7 @@ violationsAPI.get('/violations/type', async (req, res, next) => {
 violationsAPI.get('/violations/user/type', async (req, res) => {
     const con = initializeConnection();
     con.query(
-        'SELECT u.userId, u.username, v.violationType, count(1) as numOfViolations FROM `database-1`.`Violations` v, `database-1`.`Users` u WHERE v.userId = u.userId GROUP BY u.userId, u.username, v.violationType',
+        'select count(1) as numOfViolation, v.username, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId group by v.username, r.violationCategory',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -87,10 +87,11 @@ violationsAPI.get('/violations/user/type', async (req, res) => {
     );
 });
 
-violationsAPI.get('/violations/user/:userId', async (req, res, next) => {
+violationsAPI.get('/violations/user/:username', async (req, res, next) => {
     const con = initializeConnection();
+    console.log(req.params.username)
     con.query(
-        'SELECT * FROM `database-1`.`Violations` WHERE userId=' + req.params.userId,
+        'SELECT * FROM `database-1`.`Violations` WHERE userId=' + req.params.username ,
         function (error, result) {
             if (error) {
                 console.log({ error });
