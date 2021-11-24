@@ -3,8 +3,8 @@ const fs = require('fs')
 const hcltojson = require('hcl-to-json');
 const { InvalidTerraformFileError, LineNumberNotFoundError, GrepError } = require("./additionalViolationErrors");
 
-const invokeLambda = require('functions/utilities/invokeLambda.js');
-const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+// const invokeLambda = require('functions/utilities/invokeLambda.js');
+// const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 
 aws.config.region = process.region;
 const spawn = require('child_process').spawn;
@@ -25,26 +25,34 @@ const grepWithShell = async(grepSearch) => {
 };
 
 const getLineNumber = async(resourceType, resourceName) => {
-    const grepSearch = `resource +"${resourceType}" +"${resourceName}"`;
-    try{
-        const lines = await grepWithShell(grepSearch);
-        if (lines === "") {
-            //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, LINE_NUMBER_NOT_FOUND, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
-            const parseError = new LineNumberNotFoundError(file.githubFullPath, grepSearch);
-            addError(parseError);
-        }
-        const lineNumber = lines.split(":")[0];
-        if (Number.isInteger(lineNumber)) return lineNumber;
-        const grepError = new GrepError(file.githubFullPath, grepSearch, `Unexpected value returned from line search: ${lines}`);
-        addError(grepError);
-    } catch (e) {
-        if (e instanceof LineNumberNotFoundError || e instanceof GrepError) throw e;
-        else {
-            //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, GREP_ERROR, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
-            const grepError =  new GrepError(file.githubFullPath, grepSearch, e);
-            addError(grepError);
-        }
-    }
+    return 1;
+    // console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
+    // const grepSearch = `resource +"${resourceType}" +"${resourceName}"`;
+    // console.log(`grepSearch: ${grepSearch}`);
+    // try{
+    //     const lines = await grepWithShell(grepSearch);
+    //     if (lines === "") {
+    //         //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, LINE_NUMBER_NOT_FOUND, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
+    //         console.log(`lines === "", error thrown`);
+    //         const parseError = new LineNumberNotFoundError(file.githubFullPath, grepSearch);
+    //         addError(parseError);
+    //     }
+    //     const lineNumber = lines.split(":")[0];
+    //     console.log(`lineNumber: ${lineNumber}`);
+    //     if (Number.isInteger(lineNumber)) return lineNumber;
+    //     console.log(`lineNumber is not a number, error thrown`);
+    //     const grepError = new GrepError(file.githubFullPath, grepSearch, `Unexpected value returned from line search: ${lines}`);
+    //     addError(grepError);
+    // } catch (e) {
+    //     console.log(`error caught in getLineNumber`);
+    //     if (e instanceof LineNumberNotFoundError || e instanceof GrepError) throw e;
+    //     else {
+    //         //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, GREP_ERROR, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
+    //         const grepError =  new GrepError(file.githubFullPath, grepSearch, e);
+    //         addError(grepError);
+    //         throw grepError;
+    //     }
+    // }
 }
 
 const hasProperty = async(resource, propertyKey) => {
@@ -72,17 +80,22 @@ const addError = async(e) => {
 }
 
 const addViolation = async(violationRule, resourceType, resourceName) => {
-    const lineNumber = await getLineNumber(resourceType, resourceName);
-    const violation = {violationId: violationRule.id, 
-                        severity: violationRule.severity,
-                        category: violationRule.category,
-                        lineNumber: lineNumber,
-                        resourceType: resourceType,
-                        resourceName: resourceName
-                        }
+    console.log(`Inside addViolation with violationRule: ${violationRule}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
+    try {
+        const lineNumber = await getLineNumber(resourceType, resourceName);
+        const violation = {violationId: violationRule.id, 
+                            severity: violationRule.severity,
+                            category: violationRule.category,
+                            lineNumber: lineNumber,
+                            resourceType: resourceType,
+                            resourceName: resourceName
+                            }
 
-    console.log("violation found: " + JSON.stringify(violation));
-    violationsFound.push(violation);
+        console.log("violation found: " + JSON.stringify(violation));
+        violationsFound.push(violation);
+    } catch (e) {
+        console.log(`Violation is not added because of error: ${e}`);
+    }
 }
 
 // has no key, has no value at key, has no value in range at key
@@ -118,17 +131,21 @@ const hasNotSingle = async(resourceType, resourceName, hasNotViolationRule, reso
 // has key, has key value, has key value in range
 const hasSingle = async(resourceType, resourceName, hasViolationRule, resource) => {
     // check if violation rule is properly formatted, if not ignore rule
+    console.log(`In hasSingle with resourceType: ${resourceType}, resourceName: ${resourceName}, hasViolationRule: ${hasViolationRule}, resource: ${resource}`);
     if (!hasProperty(hasViolationRule, "key")) return;
+    console.log(`rule has key for ${resourceName}`);
     try {
         // check if key is in resource
         if (!hasProperty(resource, hasViolationRule.key)) {
             addViolation(hasViolationRule, resourceType, resourceName);
+            console.log(`Property is missing for ${resourceName}`);
             return;
         }
         // if checking for value, see if they match
         if (hasProperty(hasViolationRule, "value")) {
             if (getPropertyValue(resource, hasViolationRule.key) !== hasViolationRule.value) {
                 addViolation(hasViolationRule, resourceType, resourceName);
+                console.log(`Value does not equate for ${resourceName}`);
             }
             return;
         }
@@ -138,9 +155,11 @@ const hasSingle = async(resourceType, resourceName, hasViolationRule, resource) 
             const value = getPropertyValue(resource, hasViolationRule.key);
             if (!rangeValues.some(v => v === value)) {
                 addViolation(hasViolationRule, resourceType, resourceName);
+                console.log(`Range does not equate for ${resourceName}`);
             }
             return;
         }
+        console.log(`No violation found for ${resourceName}`);
         // No violations found
     } catch (e) {
         console.log(`Resource type: ${resourceType}, resource name: ${resourceName}, violation rule: ${hasViolationRule.id} skipped due to parsing error`);
@@ -187,10 +206,16 @@ module.exports.parseFile = async (event, context, callback) => {
     var terraformFile;
     while (fileNotFound) {
         if (fs.existsSync(filePath)) {
-            terraformFile = fs.readFileSync(filePath);
+            const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
+            console.log(tempFile);
+            terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
             fileNotFound = false;
+            // const buff = new Buffer(terraformFile, "base64");
+            // const text = buff.toString("ascii");
+            // const buf = Buffer.from(terraformFile, "base64");
+            // const text = buf.toString("ascii");
             console.log("done reading file " + fileName);
-            // console.log(`Terraform file read: ${terraformFile}`);
+            console.log(`Terraform file read: ${terraformFile}`);
         }
     }
 
@@ -201,12 +226,13 @@ module.exports.parseFile = async (event, context, callback) => {
 
     try {
         const parsedTerraformFile = hcltojson(terraformFile);
-        console.log(`Terraform file ${fileName} parsed successfully`);
+        console.log(`Terraform file ${fileName} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`);
         
-        if (parsedTerraformFile.hasOwnProperty('resource')) {
+        console.log(`Are there resources? ${parsedTerraformFile.hasOwnProperty("resource")}`);
+        if (parsedTerraformFile.hasOwnProperty("resource")) {
             const parsedResources = parsedTerraformFile.resource;
             const resourceTypes = Object.keys(parsedResources);
-
+            console.log(`The AWS Resource Types in this file are ${JSON.stringify(resourceTypes)}`);
             // TODO: This will be populated with relevant violation rules (resourceTypes)
             const violationRules = [
                 {
@@ -258,14 +284,31 @@ module.exports.parseFile = async (event, context, callback) => {
                 },
             ]; 
 
-            violationRules.forEach(violationRulesByResourceType => {
+            //const processThreads = [];
+
+            for (const violationRulesByResourceType of violationRules) {
                 const resourceType = violationRulesByResourceType.aws_resource_type;
                 const resources = parsedResources[resourceType];
                 const resourceNames = Object.keys(resources);
-                resourceNames.forEach(rn => {
-                    processResource(resources[rn], violationRulesByResourceType, resourceType, rn);
-                })
-            })
+
+                for (const rn of resourceNames) {
+                    await processResource(resources[rn], violationRulesByResourceType, resourceType, rn);
+                    console.log(`Completed processing of ${rn}`);
+                }
+                // resourceNames.forEach(rn => {
+                //     await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
+                // });
+            }
+
+            // violationRules.forEach(violationRulesByResourceType => {
+            //     const resourceType = violationRulesByResourceType.aws_resource_type;
+            //     const resources = parsedResources[resourceType];
+            //     const resourceNames = Object.keys(resources);
+            //     resourceNames.forEach(rn => {
+            //         await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
+            //     });
+            // });
+            //await Promise.all(processThreads);
         }
         
     } catch (e) {
