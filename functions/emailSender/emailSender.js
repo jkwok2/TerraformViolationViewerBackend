@@ -160,8 +160,8 @@ async function getEmailFromDB(username) {
 
   const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
   return axios.get(db_url).then((res) => {
-      console.log(res);
-      return res;
+      console.log(res.data[0]);
+      return res.data[0].email;
   });
 }
 
