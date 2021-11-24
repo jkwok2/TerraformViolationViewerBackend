@@ -156,9 +156,9 @@ module.exports.emailSender = async function (event) {
 
 async function getEmailFromDB(username) {
 
-  console.log(`requesting github email for ${username}`);
+  console.log(`requesting email from database for ${username}`);
 
-  const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/${username}`;
+  const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
   return axios.get(db_url).then((res) => {
       console.log(res);
       return res;

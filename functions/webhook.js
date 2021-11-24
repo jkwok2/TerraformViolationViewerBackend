@@ -11,10 +11,9 @@ const path = require('path');
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
 
-//const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
-const writeFileLambdaName = 'writeFile';
-//const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
-//const parseFileLambdaName = 'hsbc-backend-app-meg-dev-parseFile';
+const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
+const parseFileLambdaName = 'hsbc-backend-app-meg-dev-parseFile';
 
 
 // Change to tr for terraform
