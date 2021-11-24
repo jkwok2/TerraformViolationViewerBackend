@@ -11,10 +11,10 @@ const path = require('path');
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
 
-const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
-const readFileLambdaName = 'hsbc-backend-app-meg-dev-readFile';
-const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
-const parseFileLambdaName = 'hsbc-backend-app-meg-dev-parseFile';
+//const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+const writeFileLambdaName = 'writeFile';
+//const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
+//const parseFileLambdaName = 'hsbc-backend-app-meg-dev-parseFile';
 
 
 // Change to tr for terraform
@@ -79,19 +79,17 @@ module.exports.webhook = async (event, context, callback) => {
     // creates metadata file in dir for this PR
     invokeLambda(writeFileLambdaName, {fileName: "metadata.json", 
                                         content: metadataPayload, 
-                                        dir: efsPath, 
-                                        githubFullPath: ""});
+                                        dir: efsPath });
 
     files.forEach(f => invokeLambda(writeFileLambdaName, {fileName: f.name, 
                                                             content: f.content, 
                                                             dir: efsPath, 
-                                                            pullRequestId: pullRequest.id,
-                                                            githubFullPath: ""}));
+                                                            pullRequestId: pullRequest.id}));
 
     files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, 
                                                             dir: efsPath,
                                                             efsFilePath: efsPath + "/" + f.name, 
-                                                            githubFullPath: f.name}));
+                                                            githubFullPath: f.path}));
 
     const monitorPayload = { username: pullRequest.username, 
                                 userid: pullRequest.userid, 
