@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 const aws = require("aws-sdk");
-const axios = require('axios');
+const axios = require("axios");
+//const usersAPI = require('functions/routes/users.js');
+
 const ses = new aws.SES({ region: "us-east-1" });
 
 module.exports.emailSender = async function (event) {
@@ -83,6 +85,8 @@ module.exports.emailSender = async function (event) {
     },
   };
 */
+
+  console.log("start of emailSEnder");
   let name
   let statVal
   let errCount
@@ -131,7 +135,11 @@ module.exports.emailSender = async function (event) {
   };
 
 
-  address = await getGithubUserEmail(name);
+  //address = await getGithubUserEmail(name);
+  console.log("about to get email");
+  address = await getEmailFromDB(name);
+  console.log("name: " + name);
+  console.log("address: " + address);
 
   let params = {
     Source: "Group 4 <cpsc319fall2021@gmail.com>",
@@ -146,16 +154,21 @@ module.exports.emailSender = async function (event) {
   return ses.sendTemplatedEmail(params).promise()
 };
 
-async function getGithubUserEmail(username) {
+async function getEmailFromDB(username) {
 
-  console.log("requesting github email");
+  console.log(`requesting email from database for ${username}`);
 
-  const email_url = 'https://api.github.com/users/' + username;
-  return axios.get(email_url, {
-      'headers': {
-          'Authorization': `token ${process.env.GITHUB_AUTHENTICATION_TOKEN}`
-      }
-  }).then((res) => {
-      return res.data.email;
+  const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+  return axios.get(db_url).then((res) => {
+      console.log(res.data[0]);
+      return res.data[0].email;
   });
 }
+
+// async function getEmailFromDB(username) {
+
+//   return usersAPI.get({username: username}, {
+//     statusCode: 200
+//     });
+
+// }
