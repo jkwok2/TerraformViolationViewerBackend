@@ -7,7 +7,8 @@ const { InvalidTerraformFileError, LineNumberNotFoundError, GrepError } = requir
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 
 aws.config.region = process.region;
-const spawn = require('child_process').spawn;
+//const spawn = require('child_process').spawn;
+const { exec } = require('child_process');
 let violationsFound;
 let errorsEncountered;
 const file = {
@@ -16,43 +17,74 @@ const file = {
     githubFullPath: "",
 };
 
+const initializeConnection = require('./routes/common');
+const YAML = require('yaml')
+
+function mapRules(data) {
+    return data.map(x => {
+        let yamlContent = YAML.parse(x.content);
+        x.content = yamlContent
+        return x;
+    });
+}
+
 const grepWithShell = async(grepSearch) => {
-    const child = spawn('grep', ['-n -E', grepSearch, file.content]);
+    // const child = spawn('grep', ['-n -E', grepSearch, file.content]);
+    const child = exec(`grep -n -E ${grepSearch} ${file.content}`);
     let res = '';
     child.stdout.on('data', (buffer) => { res += buffer.toString(); });
     child.stdout.on('end', () => {});
     return res;
 };
 
+// function grepWithShell(valueToLookFor) {
+//     const f = `sdf dfd resource is in this line`;
+//     return new Promise((resolve, reject) => {
+//         const spawn = require('child_process').spawn;
+//         let res = '';
+//         console.log(`In grepWithShell, file: ${f}`);
+//         const child = spawn('grep', ['-n', valueToLookFor, f]);
+//         child.stdout.on('data', function (buffer) { res += buffer.toString(); });
+//         child.stdout.on('end', function () { 
+//             if (res === ''){
+//                 res = 'err: could not find property or value in file'
+//             }
+//             console.log(`res: ${res}`);
+//             resolve(res) 
+//         });
+//     });
+// };
+
 const getLineNumber = async(resourceType, resourceName) => {
-    return 1;
-    // console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
-    // const grepSearch = `resource +"${resourceType}" +"${resourceName}"`;
-    // console.log(`grepSearch: ${grepSearch}`);
-    // try{
-    //     const lines = await grepWithShell(grepSearch);
-    //     if (lines === "") {
-    //         //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, LINE_NUMBER_NOT_FOUND, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
-    //         console.log(`lines === "", error thrown`);
-    //         const parseError = new LineNumberNotFoundError(file.githubFullPath, grepSearch);
-    //         addError(parseError);
-    //     }
-    //     const lineNumber = lines.split(":")[0];
-    //     console.log(`lineNumber: ${lineNumber}`);
-    //     if (Number.isInteger(lineNumber)) return lineNumber;
-    //     console.log(`lineNumber is not a number, error thrown`);
-    //     const grepError = new GrepError(file.githubFullPath, grepSearch, `Unexpected value returned from line search: ${lines}`);
-    //     addError(grepError);
-    // } catch (e) {
-    //     console.log(`error caught in getLineNumber`);
-    //     if (e instanceof LineNumberNotFoundError || e instanceof GrepError) throw e;
-    //     else {
-    //         //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, GREP_ERROR, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
-    //         const grepError =  new GrepError(file.githubFullPath, grepSearch, e);
-    //         addError(grepError);
-    //         throw grepError;
-    //     }
-    // }
+    //return 1;
+    console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
+    // const grepSearch = `resource "${resourceType}" "${resourceName}"`;
+    const grepSearch = `resource`;
+    console.log(`grepSearch: ${grepSearch}`);
+    try{
+        const lines = await grepWithShell(grepSearch);
+        if (lines === "") {
+            //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, LINE_NUMBER_NOT_FOUND, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
+            console.log(`lines === "", error thrown`);
+            const parseError = new LineNumberNotFoundError(file.githubFullPath, grepSearch);
+            addError(parseError);
+        }
+        const lineNumber = lines.split(":")[0];
+        console.log(`lineNumber: ${lineNumber}`);
+        if (Number.isInteger(lineNumber)) return lineNumber;
+        console.log(`lineNumber is not a number, error thrown`);
+        const grepError = new GrepError(file.githubFullPath, grepSearch, `Unexpected value returned from line search: ${lines}`);
+        addError(grepError);
+    } catch (e) {
+        console.log(`error caught in getLineNumber`);
+        if (e instanceof LineNumberNotFoundError || e instanceof GrepError) throw e;
+        else {
+            //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, GREP_ERROR, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
+            const grepError =  new GrepError(file.githubFullPath, grepSearch, e);
+            addError(grepError);
+            throw grepError;
+        }
+    }
 }
 
 const hasProperty = async(resource, propertyKey) => {
@@ -83,12 +115,14 @@ const addViolation = async(violationRule, resourceType, resourceName) => {
     console.log(`Inside addViolation with violationRule: ${violationRule}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
     try {
         const lineNumber = await getLineNumber(resourceType, resourceName);
-        const violation = {violationId: violationRule.id, 
-                            severity: violationRule.severity,
-                            category: violationRule.category,
+        // userId, filePath, lineNumber, violationType, dateFound
+        const violation = { violationRuleId: violationRule.id, 
+                            //severity: violationRule.severity,
+                            //category: violationRule.category,
                             lineNumber: lineNumber,
-                            resourceType: resourceType,
-                            resourceName: resourceName
+                            dateFound: Date.now(),
+                            //resourceType: resourceType,
+                            //resourceName: resourceName
                             }
 
         console.log("violation found: " + JSON.stringify(violation));
@@ -190,141 +224,229 @@ const processResource = async(resource, violationRules, resourceType, resourceNa
 
 module.exports.parseFile = async (event, context, callback) => {
 
-    violationsFound = [];
-    errorsEncountered = [];
-
-    const fileName = event.fileName;
-    const dir = event.dir;
-    const githubFullPath = event.githubFullPath;
-    const filePath = dir + "/" + fileName;
-
-    console.log(`start reading file ${fileName}`);
-    console.log(`start reading file ${filePath}`);
-
-    // hacky way to get around race condition if file doesn't exist in EFS yet
-    var fileNotFound = true;
-    var terraformFile;
-    while (fileNotFound) {
-        if (fs.existsSync(filePath)) {
-            const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
-            console.log(tempFile);
-            terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
-            fileNotFound = false;
-            // const buff = new Buffer(terraformFile, "base64");
-            // const text = buff.toString("ascii");
-            // const buf = Buffer.from(terraformFile, "base64");
-            // const text = buf.toString("ascii");
-            console.log("done reading file " + fileName);
-            console.log(`Terraform file read: ${terraformFile}`);
-        }
-    }
-
-    file.content = terraformFile;
-    file.efsFullPath = filePath;
-    file.githubFullPath = githubFullPath;
-    Object.freeze(file);
-
-    try {
-        const parsedTerraformFile = hcltojson(terraformFile);
-        console.log(`Terraform file ${fileName} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`);
-        
-        console.log(`Are there resources? ${parsedTerraformFile.hasOwnProperty("resource")}`);
-        if (parsedTerraformFile.hasOwnProperty("resource")) {
-            const parsedResources = parsedTerraformFile.resource;
-            const resourceTypes = Object.keys(parsedResources);
-            console.log(`The AWS Resource Types in this file are ${JSON.stringify(resourceTypes)}`);
-            // TODO: This will be populated with relevant violation rules (resourceTypes)
-            const violationRules = [
-                {
-                    "aws_resource_type": "aws_athena_workgroup",
-                    "has": [
-                        {
-                            "id": "athena",
-                            "resource": "aws_athena_workgroup",
-                            "category": "GENERAL",
-                            "severity": "MEDIUM",
-                            "key": "configuration.result_configuration.encryption_configuration"
-                        }
-                    ]
-                },
-                {
-                    "aws_resource_type": "aws_security_group",
-                    "has": [
-                        {
-                            "id": "security_2",
-                            "category": "NETWORKING",
-                            "severity": "LOW",
-                            "key": "ingress.description"
-                        }
-                    ],
-                    "not_has": [
-                        {
-                            "id": "security_1",
-                            "category": "NETWORKING",
-                            "severity": "MEDIUM",
-                            "key": "ingress.cidr_blocks",
-                            "value": "0.0.0.0/0"
-                        }
-                    ]
-                },
-                {
-                    "aws_resource_type": "aws_cloudfront_distribution",
-                    "has": [
-                        {
-                            "id": "cloudfront",
-                            "category": "NETWORKING",
-                            "severity": "MEDIUM",
-                            "key": "default_cache_behavior.viewer_protocol_policy",
-                            "range": [
-                                "redirect-to-https",
-                                "https-only"
-                            ]
-                        }
-                    ]
-                },
-            ]; 
-
-            //const processThreads = [];
-
-            for (const violationRulesByResourceType of violationRules) {
-                const resourceType = violationRulesByResourceType.aws_resource_type;
-                const resources = parsedResources[resourceType];
-                const resourceNames = Object.keys(resources);
-
-                for (const rn of resourceNames) {
-                    await processResource(resources[rn], violationRulesByResourceType, resourceType, rn);
-                    console.log(`Completed processing of ${rn}`);
-                }
-                // resourceNames.forEach(rn => {
-                //     await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
-                // });
+    const con = initializeConnection();
+    let rulez = [];
+    let result;
+    con.query(
+        'SELECT * FROM `database-1`.`Rules` WHERE status = "active"',
+        function (err, result) {
+            console.log('test one')
+            if (err) {
+                throw err;
             }
-
-            // violationRules.forEach(violationRulesByResourceType => {
-            //     const resourceType = violationRulesByResourceType.aws_resource_type;
-            //     const resources = parsedResources[resourceType];
-            //     const resourceNames = Object.keys(resources);
-            //     resourceNames.forEach(rn => {
-            //         await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
-            //     });
-            // });
-            //await Promise.all(processThreads);
+            if (result) {
+                console.log('sets value')
+                setValue(result);
+                result = createObject(rulez)
+                con.end();
+            }
         }
-        
-    } catch (e) {
-        const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
-        addError(invalidTerraformFileError);
-    } finally {
-        const result = {
-            errors: errorsEncountered,
-            violations: violationsFound,
-        };
+    )
 
-        console.log("dir: " + dir);
-        const writePath = dir + "/result_" + fileName;
-
-        console.log("writing to " + writePath);
-        fs.writeFileSync(writePath, result);
-        console.log("wrote " + writePath);
+    function setValue(result) {
+        rulez = mapRules(result);
+        // console.log('rules: ' + rulez);
     }
+    
+    function createObject(rulez) {
+        // console.log(rulez[0].content)
+        // console.log(rulez[1].content)
+        let setOfResources = new Set();
+        for (let rule of rulez) {
+            // console.log(rule);
+            // console.log('a: '+ rule.content.resource)
+            setOfResources.add(rule.content.resource);
+        }
+        // console.log(setOfResources);
+        let mapOfRules = new Map();
+        for (let resource of setOfResources) {
+            let combinedRuleObj = {};
+            combinedRuleObj.aws_resource_type = resource;
+            combinedRuleObj.has = [];
+            combinedRuleObj.not_has = [];
+            mapOfRules.set(resource, combinedRuleObj);
+        }
+        // console.log(mapOfRules)
+        for (let rules of rulez) {
+            let data = rules.content;
+            // console.log(data)
+            if (data.has) {
+                // console.log('has')
+                let obj = mapOfRules.get(data.resource);
+                let hasArray = obj.has;
+                data.has.forEach(hasObj => {
+                    hasArray.push(hasObj);
+                });
+                obj.has = hasArray;
+                mapOfRules.set(data.resource, obj);
+            }
+            if (data.has_not) {
+                // console.log('has_not')
+                let obj = mapOfRules.get(data.resource);
+                let hasNotArray = obj.not_has;
+                data.has_not.forEach(hasNotObj => {
+                    hasNotArray.push(hasNotObj);
+                });
+                obj.not_has = hasNotArray;
+                mapOfRules.set(data.resource, obj);
+            }
+        }
+        // console.log(mapOfRules)
+        let rules = Array.from(mapOfRules.values());
+        for (rule of rules) {
+            if (rule.has.length === 0) {
+                delete rule.has;
+            }
+            if (rule.not_has.length === 0) {
+                delete rule.not_has;
+            }
+        }
+        console.log(rules)
+        return rules;
+    } 
+    
+    // const response = {
+    //     statusCode: 200,
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: result
+    // }
+
+    // return callback(null, response);
+    // violationsFound = [];
+    // errorsEncountered = [];
+
+    // const fileName = event.fileName;
+    // const dir = event.dir;
+    // const githubFullPath = event.githubFullPath;
+    // const filePath = dir + "/" + fileName;
+
+    // console.log(`start reading file ${fileName}`);
+    // console.log(`start reading file ${filePath}`);
+
+    // // hacky way to get around race condition if file doesn't exist in EFS yet
+    // var fileNotFound = true;
+    // var terraformFile;
+    // while (fileNotFound) {
+    //     if (fs.existsSync(filePath)) {
+    //         const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
+    //         console.log(tempFile);
+    //         terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
+    //         fileNotFound = false;
+    //         // const buff = new Buffer(terraformFile, "base64");
+    //         // const text = buff.toString("ascii");
+    //         // const buf = Buffer.from(terraformFile, "base64");
+    //         // const text = buf.toString("ascii");
+    //         console.log("done reading file " + fileName);
+    //         console.log(`Terraform file read: ${terraformFile}`);
+    //     }
+    // }
+
+    // file.content = terraformFile;
+    // file.efsFullPath = filePath;
+    // file.githubFullPath = githubFullPath;
+    // Object.freeze(file);
+
+    // try {
+    //     const parsedTerraformFile = hcltojson(terraformFile);
+    //     console.log(`Terraform file ${fileName} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`);
+        
+    //     console.log(`Are there resources? ${parsedTerraformFile.hasOwnProperty("resource")}`);
+    //     if (parsedTerraformFile.hasOwnProperty("resource")) {
+    //         const parsedResources = parsedTerraformFile.resource;
+    //         const resourceTypes = Object.keys(parsedResources);
+    //         console.log(`The AWS Resource Types in this file are ${JSON.stringify(resourceTypes)}`);
+    //         // TODO: This will be populated with relevant violation rules (resourceTypes)
+    //         const violationRules = [
+    //             {
+    //                 "aws_resource_type": "aws_athena_workgroup",
+    //                 "has": [
+    //                     {
+    //                         "id": "athena",
+    //                         "resource": "aws_athena_workgroup",
+    //                         "category": "GENERAL",
+    //                         "severity": "MEDIUM",
+    //                         "key": "configuration.result_configuration.encryption_configuration"
+    //                     }
+    //                 ]
+    //             },
+    //             {
+    //                 "aws_resource_type": "aws_security_group",
+    //                 "has": [
+    //                     {
+    //                         "id": "security_2",
+    //                         "category": "NETWORKING",
+    //                         "severity": "LOW",
+    //                         "key": "ingress.description"
+    //                     }
+    //                 ],
+    //                 "not_has": [
+    //                     {
+    //                         "id": "security_1",
+    //                         "category": "NETWORKING",
+    //                         "severity": "MEDIUM",
+    //                         "key": "ingress.cidr_blocks",
+    //                         "value": "0.0.0.0/0"
+    //                     }
+    //                 ]
+    //             },
+    //             {
+    //                 "aws_resource_type": "aws_cloudfront_distribution",
+    //                 "has": [
+    //                     {
+    //                         "id": "cloudfront",
+    //                         "category": "NETWORKING",
+    //                         "severity": "MEDIUM",
+    //                         "key": "default_cache_behavior.viewer_protocol_policy",
+    //                         "range": [
+    //                             "redirect-to-https",
+    //                             "https-only"
+    //                         ]
+    //                     }
+    //                 ]
+    //             },
+    //         ]; 
+
+    //         //const processThreads = [];
+
+    //         for (const violationRulesByResourceType of violationRules) {
+    //             const resourceType = violationRulesByResourceType.aws_resource_type;
+    //             const resources = parsedResources[resourceType];
+    //             const resourceNames = Object.keys(resources);
+
+    //             for (const rn of resourceNames) {
+    //                 await processResource(resources[rn], violationRulesByResourceType, resourceType, rn);
+    //                 console.log(`Completed processing of ${rn}`);
+    //             }
+    //             // resourceNames.forEach(rn => {
+    //             //     await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
+    //             // });
+    //         }
+
+    //         // violationRules.forEach(violationRulesByResourceType => {
+    //         //     const resourceType = violationRulesByResourceType.aws_resource_type;
+    //         //     const resources = parsedResources[resourceType];
+    //         //     const resourceNames = Object.keys(resources);
+    //         //     resourceNames.forEach(rn => {
+    //         //         await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
+    //         //     });
+    //         // });
+    //         //await Promise.all(processThreads);
+    //     }
+        
+    // } catch (e) {
+    //     const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
+    //     addError(invalidTerraformFileError);
+    // } finally {
+    //     const result = {
+    //         errors: errorsEncountered,
+    //         violations: violationsFound,
+    //     };
+
+    //     console.log("dir: " + dir);
+    //     const writePath = dir + "/result_" + fileName;
+
+    //     console.log("writing to " + writePath);
+    //     fs.writeFileSync(writePath, result);
+    //     console.log("wrote " + writePath);
+    // }
 };
