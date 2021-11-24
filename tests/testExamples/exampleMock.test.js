@@ -79,5 +79,19 @@ it ('mock function directly with pasted code', () => {
 });
 // This video might also help https://www.youtube.com/watch?v=IDjF6-s1hGk
 
+// You can also mock return values
+it ('test using mocked return values', () => {
+    const mockFunc = jest.fn();
+    // By itself, the return value is undefined
+    mockFunc.mockReturnValueOnce(3).mockReturnValueOnce(2).mockReturnValue(4);
+    // mockReturnValueOnce specifies the return value on the next call
+    // mockReturnValue specifies the return value on all calls
+    expect(mockFunc()).toBe(3);
+    expect(mockFunc()).toBe(2);
+    expect(mockFunc()).toBe(4);
+    expect(mockFunc()).toBe(4);
+    expect(mockFunc()).toBe(4);
+});
+
 // For more uses of mock functions https://jestjs.io/docs/mock-functions.
 // There are also other documentation of Jest in general there.
