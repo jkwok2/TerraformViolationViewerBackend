@@ -13,13 +13,4 @@ const userUpdateById = Joi.object({
   userId: Joi.string().min(1).max(50).required(),
 });
 
-const userGetById = Joi.object({
-  userId: Joi.string().min(1).max(50).required(),
-});
-
-const emailGetByUsername = Joi.object({
-  username: Joi.string().min(1).max(45),
-});
-
-
-module.exports = { userPost, userGetById, userUpdateById, userGetByUsername};
+module.exports = { userPost, userUpdateById};
