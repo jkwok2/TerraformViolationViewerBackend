@@ -5,7 +5,7 @@ const ruleSchema = Joi.object({
     fileId: Joi.string().min(1).max(255).required(),
     awsresource: Joi.string().min(1).max(90).required(),
     severity: Joi.string().min(1).max(45).required(),
-    category: Joi.string().min(0).max(45).required(),
+    violationCategory: Joi.string().min(0).max(45).required(),
     status: Joi.string().min(1).max(45),
     description: Joi.string().min(0).max(255).required(),
     dateAdded: Joi.date().required(),
