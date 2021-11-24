@@ -76,6 +76,7 @@ functions:
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
+    timeout: 10
   monitor:
     handler: functions/monitor.monitor
     role: lambdaEFSrole

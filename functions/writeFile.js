@@ -37,7 +37,7 @@ module.exports.writeFile = async (event, context, callback) => {
 
     if (!fs.existsSync(filePath)) {
         console.log("writeFile lambda to " + filePath);
-        fs.writeFileSync(filePath, event.fileContent);
+        fs.writeFileSync(filePath, event.content);
         console.log("writeFile done writing " + filePath); 
     }
     
