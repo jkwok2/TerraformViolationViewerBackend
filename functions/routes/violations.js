@@ -18,7 +18,7 @@ violationsAPI.use((req, res, next) => {
 violationsAPI.get('/violations', async (req, res) => {
     const con = initializeConnection();
     con.query(
-        'select v.violationId, r.ruleId, v.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId',
+        'select v.violationId, r.ruleId, u.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v, `database-1`.`Users` u where r.ruleId = v.ruleId and u.userId = v.userId',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -87,11 +87,11 @@ violationsAPI.get('/violations/user/type', async (req, res) => {
     );
 });
 
-violationsAPI.get('/violations/user/:username', async (req, res, next) => {
+violationsAPI.get('/violations/user/:userId', async (req, res, next) => {
     const con = initializeConnection();
-    console.log(req.params.username)
+    console.log(req.params.userId);
     con.query(
-        'SELECT * FROM `database-1`.`Violations` WHERE userId=' + req.params.username ,
+        `SELECT u.username FROM \`database-1\`.\`Violations\` v, \`database-1\`.\`Users\` u WHERE v.userId='${req.params.userId}' and u.userId='${req.params.userId}'`,
         function (error, result) {
             if (error) {
                 console.log({ error });
