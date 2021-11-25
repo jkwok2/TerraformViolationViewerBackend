@@ -44,7 +44,7 @@ module.exports.webhook = async (event, context, callback) => {
         'repo': body.pull_request.head.repo.name,
         'repo_owner': body.pull_request.head.repo.owner.login,
         //TODO use this 'timestamp': body.pull_request.updated_at
-        'timestamp': body.pull_request.created_at
+        'timestamp': Date.parse(body.pull_request.updated_at)
         // 'changed_files_num': body.pull_request.changed_files
     }
 
@@ -59,7 +59,7 @@ module.exports.webhook = async (event, context, callback) => {
 
     // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
 
-    const efsPath = '/mnt/files/' + pullRequest.repo;
+    const efsPath = '/mnt/files/' + pullRequest.repo + "2";
     // const path = dir + "/" + event.filename;
     console.log("efsPath: " + efsPath);
 

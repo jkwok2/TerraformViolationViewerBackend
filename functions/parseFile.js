@@ -179,7 +179,8 @@ const getPropertyValue = async (resource, propertyKey) => {
 }
 
 const addError = async(e) => {
-    errorsEncountered.push(e.prototype.toString());
+    errorsEncountered.push(e);
+    console.log("error " + e);
     console.log(`Error encountered at ${file.efsFullPath}: ${JSON.stringify(e)}`);
     throw e;
 }
@@ -314,11 +315,11 @@ module.exports.parseFile = async (event, context, callback) => {
     while (fileNotFound) {
         if (fs.existsSync(filePath)) {
             const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
-            console.log(tempFile);
+            //console.log(tempFile);
             terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
             fileNotFound = false;
-            console.log("done reading file " + fileName);
-            console.log(`Terraform file read: ${terraformFile}`);
+            console.log("done reading file " + filePath);
+            //console.log(`Terraform file read: ${terraformFile}`);
         }
     }
 
@@ -332,7 +333,7 @@ module.exports.parseFile = async (event, context, callback) => {
         body: `Parsing for ${file.githubFullPath} is complete`
     }
 
-    const processThreads = [];
+    //const processThreads = [];
 
     try {
         const parsedTerraformFile = hcltojson(terraformFile);
@@ -353,20 +354,30 @@ module.exports.parseFile = async (event, context, callback) => {
         console.log(`Query string: ${queryString}`);
 
         const con = initializeConnection();
-        let rulez = [];
-        con.query(
-            //'SELECT * FROM `database-1`.`Rules` WHERE status = "active" AND (awsresource = "aws_athena_workgroup" OR awsresource = "aws_elb")',
-            queryString,
-            function (err, result) {
-                if (err) {
-                    throw err;
-                }
-                if (result) {
+        // let rulez = [];
+        // con.query(
+        //     //'SELECT * FROM `database-1`.`Rules` WHERE status = "active" AND (awsresource = "aws_athena_workgroup" OR awsresource = "aws_elb")',
+        //     queryString,
+        //     function (err, result) {
+        //         if (err) {
+        //             throw err;
+        //         }
+        //         if (result) {
+        //             console.log(result);
+        //             rulez = setValue(result);
+        //             result = createObject(rulez)
+        //             console.log(JSON.stringify(result));
+        //             con.end();
+
+        var pThreads = await getRules(con, queryString).then((result) => {
+                    console.log("after getRules");
+
                     console.log(result);
                     rulez = setValue(result);
                     result = createObject(rulez)
                     console.log(JSON.stringify(result));
-                    con.end();
+                    
+                    var processThreads = [];
 
                     for (const violationRulesByResourceType of result) {
                         
@@ -385,10 +396,21 @@ module.exports.parseFile = async (event, context, callback) => {
                         }
                         
                     }
-                }
-            }
-        )
-        Promise.allSettled(processThreads).then(() => {
+                    console.log("process Threads: " + processThreads);
+                    return processThreads;
+
+                }).catch((err) => setImmediate(() => { throw err; }));
+
+
+        //         }
+        //     }
+        // )
+
+        
+        
+        Promise.allSettled(pThreads).then(() => {
+            console.log("pThreads: " + pThreads);
+
             const result = {
                 errors: errorsEncountered,
                 violations: violationsFound,
@@ -400,7 +422,7 @@ module.exports.parseFile = async (event, context, callback) => {
             console.log("writing to " + writePath);
             fs.writeFileSync(writePath, result);
             console.log("wrote " + writePath);
-            return callback(null, responseComplete);
+            // return callback(null, responseComplete);
         })
         // const response = {
         //     statusCode: 200,
@@ -410,79 +432,30 @@ module.exports.parseFile = async (event, context, callback) => {
     
         
     } catch (e) {
-        const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
-        addError(invalidTerraformFileError);
+        //const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
+        console.log("error");
+        addError("invalidTerraformFileError");
     } finally {
         
     }
-
-
-
-    // try {
-        
-    //     if (parsedTerraformFile.hasOwnProperty("resource")) {
-            
-    //         // TODO: This will be populated with relevant violation rules (resourceTypes)
-    //         const violationRules = [
-    //             {
-    //                 "aws_resource_type": "aws_athena_workgroup",
-    //                 "has": [
-    //                     {
-    //                         "id": "athena",
-    //                         "resource": "aws_athena_workgroup",
-    //                         "category": "GENERAL",
-    //                         "severity": "MEDIUM",
-    //                         "key": "configuration.result_configuration.encryption_configuration"
-    //                     }
-    //                 ]
-    //             },
-    //             {
-    //                 "aws_resource_type": "aws_security_group",
-    //                 "has": [
-    //                     {
-    //                         "id": "security_2",
-    //                         "category": "NETWORKING",
-    //                         "severity": "LOW",
-    //                         "key": "ingress.description"
-    //                     }
-    //                 ],
-    //                 "not_has": [
-    //                     {
-    //                         "id": "security_1",
-    //                         "category": "NETWORKING",
-    //                         "severity": "MEDIUM",
-    //                         "key": "ingress.cidr_blocks",
-    //                         "value": "0.0.0.0/0"
-    //                     }
-    //                 ]
-    //             },
-    //             {
-    //                 "aws_resource_type": "aws_cloudfront_distribution",
-    //                 "has": [
-    //                     {
-    //                         "id": "cloudfront",
-    //                         "category": "NETWORKING",
-    //                         "severity": "MEDIUM",
-    //                         "key": "default_cache_behavior.viewer_protocol_policy",
-    //                         "range": [
-    //                             "redirect-to-https",
-    //                             "https-only"
-    //                         ]
-    //                     }
-    //                 ]
-    //             },
-    //         ]; 
-
-            
-
-            
-    //     }
-        
-    // } catch (e) {
-    //     const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
-    //     addError(invalidTerraformFileError);
-    // } finally {
-
-        
-    // }
 };
+
+function getRules(con, queryString)
+{
+    return new Promise(function(resolve, reject) {
+
+        let rulez = [];
+        con.query(
+            queryString,
+            function (err, result) {
+                if (err) {
+                    console.log("error from db");
+                    throw err;
+                }
+
+                con.end();
+                resolve(result);
+
+            });
+    });
+}
