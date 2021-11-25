@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 const violationSchema = Joi.object({
-  username: Joi.string().min(1).max(45).required(),
+  userId: Joi.string().min(1).max(45).required(),
   repoId: Joi.string().min(1).max(45).required(),
   prId: Joi.number().min(1).max(45).required(),
   filePath: Joi.string().min(1).max(120).required(),
