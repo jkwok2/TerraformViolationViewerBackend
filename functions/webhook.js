@@ -59,7 +59,7 @@ module.exports.webhook = async (event, context, callback) => {
 
     // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
 
-    const efsPath = '/mnt/files/' + pullRequest.repo + "2";
+    const efsPath = '/mnt/files/' + pullRequest.repo + pullRequest.timestamp;
     // const path = dir + "/" + event.filename;
     console.log("efsPath: " + efsPath);
 
@@ -101,6 +101,8 @@ module.exports.webhook = async (event, context, callback) => {
 
     console.log("file.length: " +  numFiles);
     console.log("file.length * 2 + 1: " +  newNumFiles);
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     invokeLambda(monitorLambdaName, monitorPayload);
 
