@@ -2,8 +2,14 @@ var aws = require('aws-sdk');
 const fs = require('fs')
 const hcltojson = require('hcl-to-json');
 const { InvalidTerraformFileError, LineNumberNotFoundError, GrepError } = require("./additionalViolationErrors");
+<<<<<<< HEAD
 const initializeConnection = require('./routes/common');
 const YAML = require('yaml')
+=======
+
+// const invokeLambda = require('functions/utilities/invokeLambda.js');
+// const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+>>>>>>> db5f197eacef259a09cddfd1dc828486251a9cc9
 
 aws.config.region = process.region;
 //const spawn = require('child_process').spawn;
@@ -120,6 +126,7 @@ const grepWithShell = async(grepSearch) => {
 
 const getLineNumber = async(resourceType, resourceName) => {
     return 1;
+<<<<<<< HEAD
     console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
     // const grepSearch = `resource "${resourceType}" "${resourceName}"`;
     const grepSearch = `resource`;
@@ -148,6 +155,35 @@ const getLineNumber = async(resourceType, resourceName) => {
             throw grepError;
         }
     }
+=======
+    // console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
+    // const grepSearch = `resource +"${resourceType}" +"${resourceName}"`;
+    // console.log(`grepSearch: ${grepSearch}`);
+    // try{
+    //     const lines = await grepWithShell(grepSearch);
+    //     if (lines === "") {
+    //         //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, LINE_NUMBER_NOT_FOUND, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
+    //         console.log(`lines === "", error thrown`);
+    //         const parseError = new LineNumberNotFoundError(file.githubFullPath, grepSearch);
+    //         addError(parseError);
+    //     }
+    //     const lineNumber = lines.split(":")[0];
+    //     console.log(`lineNumber: ${lineNumber}`);
+    //     if (Number.isInteger(lineNumber)) return lineNumber;
+    //     console.log(`lineNumber is not a number, error thrown`);
+    //     const grepError = new GrepError(file.githubFullPath, grepSearch, `Unexpected value returned from line search: ${lines}`);
+    //     addError(grepError);
+    // } catch (e) {
+    //     console.log(`error caught in getLineNumber`);
+    //     if (e instanceof LineNumberNotFoundError || e instanceof GrepError) throw e;
+    //     else {
+    //         //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, GREP_ERROR, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
+    //         const grepError =  new GrepError(file.githubFullPath, grepSearch, e);
+    //         addError(grepError);
+    //         throw grepError;
+    //     }
+    // }
+>>>>>>> db5f197eacef259a09cddfd1dc828486251a9cc9
 }
 
 const hasProperty = async(resource, propertyKey) => {
@@ -178,6 +214,7 @@ const addViolation = async(violationRule, resourceType, resourceName) => {
     console.log(`Inside addViolation with violationRule: ${violationRule}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
     try {
         const lineNumber = await getLineNumber(resourceType, resourceName);
+<<<<<<< HEAD
         // userId, filePath, lineNumber, violationType, dateFound
         const violation = { violationRuleId: violationRule.id, 
                             //severity: violationRule.severity,
@@ -186,6 +223,14 @@ const addViolation = async(violationRule, resourceType, resourceName) => {
                             dateFound: Date.now(),
                             //resourceType: resourceType,
                             //resourceName: resourceName
+=======
+        const violation = {violationId: violationRule.id, 
+                            severity: violationRule.severity,
+                            category: violationRule.category,
+                            lineNumber: lineNumber,
+                            resourceType: resourceType,
+                            resourceName: resourceName
+>>>>>>> db5f197eacef259a09cddfd1dc828486251a9cc9
                             }
 
         console.log("violation found: " + JSON.stringify(violation));
@@ -331,6 +376,10 @@ module.exports.parseFile = async (event, context, callback) => {
             console.log(tempFile);
             terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
             fileNotFound = false;
+            // const buff = new Buffer(terraformFile, "base64");
+            // const text = buff.toString("ascii");
+            // const buf = Buffer.from(terraformFile, "base64");
+            // const text = buf.toString("ascii");
             console.log("done reading file " + fileName);
             console.log(`Terraform file read: ${terraformFile}`);
         }
