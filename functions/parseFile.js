@@ -2,9 +2,8 @@ var aws = require('aws-sdk');
 const fs = require('fs')
 const hcltojson = require('hcl-to-json');
 const { InvalidTerraformFileError, LineNumberNotFoundError, GrepError } = require("./additionalViolationErrors");
-
-// const invokeLambda = require('functions/utilities/invokeLambda.js');
-// const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+const initializeConnection = require('./routes/common');
+const YAML = require('yaml')
 
 aws.config.region = process.region;
 //const spawn = require('child_process').spawn;
@@ -17,9 +16,6 @@ const file = {
     githubFullPath: "",
 };
 
-const initializeConnection = require('./routes/common');
-const YAML = require('yaml')
-
 function mapRules(data) {
     return data.map(x => {
         let yamlContent = YAML.parse(x.content);
@@ -27,6 +23,73 @@ function mapRules(data) {
         return x;
     });
 }
+
+function setValue(result) {
+    return mapRules(result);
+    // console.log('rules: ' + rulez);
+}
+
+function createObject(rulez) {
+    // console.log(rulez[0].content)
+    // console.log(rulez[1].content)
+    let setOfResources = new Set();
+    for (let rule of rulez) {
+        // console.log(rule);
+        // console.log('a: '+ rule.content.resource)
+        setOfResources.add(rule.content.resource);
+    }
+    // console.log(setOfResources);
+    let mapOfRules = new Map();
+    for (let resource of setOfResources) {
+        let combinedRuleObj = {};
+        combinedRuleObj.aws_resource_type = resource;
+        combinedRuleObj.has = [];
+        combinedRuleObj.not_has = [];
+        mapOfRules.set(resource, combinedRuleObj);
+    }
+    // console.log(mapOfRules)
+    for (let rules of rulez) {
+        let data = rules.content;
+        // console.log(data)
+        if (data.has) {
+            // console.log('has')
+            let obj = mapOfRules.get(data.resource);
+            let hasArray = obj.has;
+            data.has.forEach(hasObj => {
+                hasArray.push(hasObj);
+            });
+            obj.has = hasArray;
+            mapOfRules.set(data.resource, obj);
+        }
+        if (data.has_not) {
+            // console.log('has_not')
+            let obj = mapOfRules.get(data.resource);
+            let hasNotArray = obj.not_has;
+            data.has_not.forEach(hasNotObj => {
+                hasNotArray.push(hasNotObj);
+            });
+            obj.not_has = hasNotArray;
+            mapOfRules.set(data.resource, obj);
+        }
+    }
+    // console.log(mapOfRules)
+    let rules = Array.from(mapOfRules.values());
+    for (rule of rules) {
+        if (rule.has.length === 0) {
+            delete rule.has;
+        }
+        if (rule.not_has.length === 0) {
+            delete rule.not_has;
+        }
+    }
+    console.log(rules)
+    return rules;
+} 
+
+// const invokeLambda = require('functions/utilities/invokeLambda.js');
+// const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+
+
 
 const grepWithShell = async(grepSearch) => {
     // const child = spawn('grep', ['-n -E', grepSearch, file.content]);
@@ -56,7 +119,7 @@ const grepWithShell = async(grepSearch) => {
 // };
 
 const getLineNumber = async(resourceType, resourceName) => {
-    //return 1;
+    return 1;
     console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
     // const grepSearch = `resource "${resourceType}" "${resourceName}"`;
     const grepSearch = `resource`;
@@ -222,139 +285,118 @@ const processResource = async(resource, violationRules, resourceType, resourceNa
     }
 }
 
-module.exports.parseFile = async (event, context, callback) => {
+const getFile = (filePath, fileName, githubFullPath) => {
+    console.log(`start reading file ${fileName}`);
+    console.log(`start reading file ${filePath}`);
 
-    const con = initializeConnection();
-    let rulez = [];
-    let result;
-    con.query(
-        'SELECT * FROM `database-1`.`Rules` WHERE status = "active"',
-        function (err, result) {
-            console.log('test one')
-            if (err) {
-                throw err;
-            }
-            if (result) {
-                console.log('sets value')
-                setValue(result);
-                result = createObject(rulez)
-                con.end();
-            }
+    // hacky way to get around race condition if file doesn't exist in EFS yet
+    var fileNotFound = true;
+    var terraformFile;
+    while (fileNotFound) {
+        if (fs.existsSync(filePath)) {
+            const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
+            console.log(tempFile);
+            terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
+            fileNotFound = false;
+            console.log("done reading file " + fileName);
+            console.log(`Terraform file read: ${terraformFile}`);
         }
-    )
-
-    function setValue(result) {
-        rulez = mapRules(result);
-        // console.log('rules: ' + rulez);
     }
+
+    file.content = terraformFile;
+    file.efsFullPath = filePath;
+    file.githubFullPath = githubFullPath;
+    Object.freeze(file);
+}
+
+module.exports.parseFile = async (event, context, callback) => {
+    violationsFound = [];
+    errorsEncountered = [];
+
+    const fileName = event.fileName;
+    const dir = event.dir;
+    const githubFullPath = event.githubFullPath;
+    const filePath = dir + "/" + fileName;
+
+    // getFile(filePath, fileName, githubFullPath);
+    console.log(`start reading file ${fileName}`);
+    console.log(`start reading file ${filePath}`);
+
+    // hacky way to get around race condition if file doesn't exist in EFS yet
+    var fileNotFound = true;
+    var terraformFile;
+    while (fileNotFound) {
+        if (fs.existsSync(filePath)) {
+            const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
+            console.log(tempFile);
+            terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
+            fileNotFound = false;
+            console.log("done reading file " + fileName);
+            console.log(`Terraform file read: ${terraformFile}`);
+        }
+    }
+
+    file.content = terraformFile;
+    file.efsFullPath = filePath;
+    file.githubFullPath = githubFullPath;
+    Object.freeze(file);
+
+    try {
+        const parsedTerraformFile = hcltojson(terraformFile);
+        console.log(`Terraform file ${fileName} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`);
+        
+        console.log(`Are there resources? ${parsedTerraformFile.hasOwnProperty("resource")}`);
+        if (!parsedTerraformFile.hasOwnProperty("resource")) {
+            const response = {
+                statusCode: 200,
+                body: "terraform file has no resources"
+            }
+            return callback(null, response);
+        }
+
+        const parsedResources = parsedTerraformFile.resource;
+        const resourceTypes = Object.keys(parsedResources);
+        console.log(`The AWS Resource Types in this file are ${JSON.stringify(resourceTypes)}`);
+
+        const con = initializeConnection();
+        let result;
+        let rulez = [];
+        con.query(
+            'SELECT * FROM `database-1`.`Rules` WHERE status = "active"',
+            function (err, result) {
+                if (err) {
+                    throw err;
+                }
+                if (result) {
+                    console.log(result);
+                    rulez = setValue(result);
+                    result = createObject(rulez)
+                    con.end();
+
+                    console.log(`can things still work after con.end? ${result}`);
+                }
+            }
+        )
     
-    function createObject(rulez) {
-        // console.log(rulez[0].content)
-        // console.log(rulez[1].content)
-        let setOfResources = new Set();
-        for (let rule of rulez) {
-            // console.log(rule);
-            // console.log('a: '+ rule.content.resource)
-            setOfResources.add(rule.content.resource);
+        const response = {
+            statusCode: 200,
+            headers: { 'Content-Type': 'application/json' },
+            body: result
         }
-        // console.log(setOfResources);
-        let mapOfRules = new Map();
-        for (let resource of setOfResources) {
-            let combinedRuleObj = {};
-            combinedRuleObj.aws_resource_type = resource;
-            combinedRuleObj.has = [];
-            combinedRuleObj.not_has = [];
-            mapOfRules.set(resource, combinedRuleObj);
-        }
-        // console.log(mapOfRules)
-        for (let rules of rulez) {
-            let data = rules.content;
-            // console.log(data)
-            if (data.has) {
-                // console.log('has')
-                let obj = mapOfRules.get(data.resource);
-                let hasArray = obj.has;
-                data.has.forEach(hasObj => {
-                    hasArray.push(hasObj);
-                });
-                obj.has = hasArray;
-                mapOfRules.set(data.resource, obj);
-            }
-            if (data.has_not) {
-                // console.log('has_not')
-                let obj = mapOfRules.get(data.resource);
-                let hasNotArray = obj.not_has;
-                data.has_not.forEach(hasNotObj => {
-                    hasNotArray.push(hasNotObj);
-                });
-                obj.not_has = hasNotArray;
-                mapOfRules.set(data.resource, obj);
-            }
-        }
-        // console.log(mapOfRules)
-        let rules = Array.from(mapOfRules.values());
-        for (rule of rules) {
-            if (rule.has.length === 0) {
-                delete rule.has;
-            }
-            if (rule.not_has.length === 0) {
-                delete rule.not_has;
-            }
-        }
-        console.log(rules)
-        return rules;
-    } 
     
-    // const response = {
-    //     statusCode: 200,
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: result
-    // }
+        return callback(null, response);
+    } catch (e) {
 
-    // return callback(null, response);
-    // violationsFound = [];
-    // errorsEncountered = [];
+    } finally {
+        
+    }
 
-    // const fileName = event.fileName;
-    // const dir = event.dir;
-    // const githubFullPath = event.githubFullPath;
-    // const filePath = dir + "/" + fileName;
 
-    // console.log(`start reading file ${fileName}`);
-    // console.log(`start reading file ${filePath}`);
-
-    // // hacky way to get around race condition if file doesn't exist in EFS yet
-    // var fileNotFound = true;
-    // var terraformFile;
-    // while (fileNotFound) {
-    //     if (fs.existsSync(filePath)) {
-    //         const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
-    //         console.log(tempFile);
-    //         terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
-    //         fileNotFound = false;
-    //         // const buff = new Buffer(terraformFile, "base64");
-    //         // const text = buff.toString("ascii");
-    //         // const buf = Buffer.from(terraformFile, "base64");
-    //         // const text = buf.toString("ascii");
-    //         console.log("done reading file " + fileName);
-    //         console.log(`Terraform file read: ${terraformFile}`);
-    //     }
-    // }
-
-    // file.content = terraformFile;
-    // file.efsFullPath = filePath;
-    // file.githubFullPath = githubFullPath;
-    // Object.freeze(file);
 
     // try {
-    //     const parsedTerraformFile = hcltojson(terraformFile);
-    //     console.log(`Terraform file ${fileName} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`);
         
-    //     console.log(`Are there resources? ${parsedTerraformFile.hasOwnProperty("resource")}`);
     //     if (parsedTerraformFile.hasOwnProperty("resource")) {
-    //         const parsedResources = parsedTerraformFile.resource;
-    //         const resourceTypes = Object.keys(parsedResources);
-    //         console.log(`The AWS Resource Types in this file are ${JSON.stringify(resourceTypes)}`);
+            
     //         // TODO: This will be populated with relevant violation rules (resourceTypes)
     //         const violationRules = [
     //             {
@@ -414,23 +456,11 @@ module.exports.parseFile = async (event, context, callback) => {
     //             const resourceNames = Object.keys(resources);
 
     //             for (const rn of resourceNames) {
+    //                 // should be Promise.allSettled
     //                 await processResource(resources[rn], violationRulesByResourceType, resourceType, rn);
     //                 console.log(`Completed processing of ${rn}`);
     //             }
-    //             // resourceNames.forEach(rn => {
-    //             //     await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
-    //             // });
     //         }
-
-    //         // violationRules.forEach(violationRulesByResourceType => {
-    //         //     const resourceType = violationRulesByResourceType.aws_resource_type;
-    //         //     const resources = parsedResources[resourceType];
-    //         //     const resourceNames = Object.keys(resources);
-    //         //     resourceNames.forEach(rn => {
-    //         //         await processThreads.put(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
-    //         //     });
-    //         // });
-    //         //await Promise.all(processThreads);
     //     }
         
     // } catch (e) {
@@ -441,6 +471,7 @@ module.exports.parseFile = async (event, context, callback) => {
     //         errors: errorsEncountered,
     //         violations: violationsFound,
     //     };
+    //     console.log(`result: ${result}`);
 
     //     console.log("dir: " + dir);
     //     const writePath = dir + "/result_" + fileName;
