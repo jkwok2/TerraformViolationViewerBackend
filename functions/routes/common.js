@@ -23,19 +23,6 @@ const config = {
 
 //   const connection = mysql.createConnection(config);
 
-//   // Add handlers.
-//   addDisconnectHandler(connection);
-//   // connection.query('SET GLOBAL connect_timeout=7200');
-//   // connection.query('SET GLOBAL interactive_timeout=7200');
-//   // connection.query('SET GLOBAL wait_timeout=7200');
-
-//   connection.connect();
-//   connection.query('SET GLOBAL connect_timeout=7200');
-//   connection.query('SET GLOBAL interactive_timeout=7200');
-//   connection.query('SET GLOBAL wait_timeout=7200');
-//   return connection;
-// }
-
 function initializeConnection() {
   const connection = mysql.createPool(config);
   return connection;

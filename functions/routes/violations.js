@@ -1,6 +1,7 @@
 const sls = require('serverless-http');
 const express = require('express');
 const initializeConnection = require('./common');
+const { query } = require('express');
 
 const violationsAPI = express();
 violationsAPI.use(express.json());
@@ -38,8 +39,33 @@ violationsAPI.use((req, res, next) => {
 
 violationsAPI.post('/violations', async (req, res) => {
   const con = initializeConnection();
-  const violationsAdded = 0;
+  let violationsAdded = 0;
   const data = req.body;
+  // const violationsQuery = util.promisify(con.query).bind(con);
+  console.log({ data });
+
+  // try {
+  //   let responses = data.map((violation) => {
+  //     return new Promise((resolve, reject) => {
+  //       const record = await query(`Insert into \`database-1\`.\`Violations\` (username, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.username}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`);
+  //       console.log({record})
+  //     });
+  //   });
+  //   await Promise.all(responses);
+  // } catch(err) {
+
+  // }
+  /*
+(async () => {
+  try {
+    const rows = await query('select count(*) as count from file_managed');
+    console.log(rows);
+  } finally {
+    conn.end();
+  }
+})()
+  */
+
   data.forEach((violation, index) => {
     con.query(
       `Insert into \`database-1\`.\`Violations\` (username, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.username}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`,
@@ -53,6 +79,7 @@ violationsAPI.post('/violations', async (req, res) => {
           console.log({ result });
           violationsAdded++;
           if (violationsAdded === data.length) {
+            console.log('ending connection');
             con.end();
             return res.status(200).send(data);
           }
@@ -65,11 +92,7 @@ violationsAPI.post('/violations', async (req, res) => {
 violationsAPI.get('/violations', async (req, res) => {
   const con = initializeConnection();
   con.query(
-    // "SELECT users.name AS user, products.name AS favorite FROM users JOIN products ON users.favorite_product = products.id"
-    // select d.Name as DogName, o.Name
-    // from Dog d
-    // inner join Owner o on d.OwnerID = o.OwnerID
-    'select * from `database-1`.`Violations`',
+    'select v.violationId, r.ruleId, u.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v, `database-1`.`Users` u where r.ruleId = v.ruleId and u.userId = v.userId',
     function (error, result) {
       if (error) {
         console.log({ error });
@@ -87,7 +110,7 @@ violationsAPI.get('/violations', async (req, res) => {
 violationsAPI.get('/violations/repo', async (req, res) => {
   const con = initializeConnection();
   con.query(
-    'select v.repoId, v.violationType, count(1) as numOfViolations from `database-1`.`Violations` v group by v.repoId, v.violationType',
+    'select count(*) as numOfViolations, repoId FROM `database-1`.`Violations` GROUP BY repoId',
     function (error, result) {
       if (error) {
         console.log({ error });
@@ -105,7 +128,7 @@ violationsAPI.get('/violations/repo', async (req, res) => {
 violationsAPI.get('/violations/type', async (req, res, next) => {
   const con = initializeConnection();
   con.query(
-    'select COUNT(*) as numOfViolations, violationType FROM `database-1`.`Violations` GROUP BY violationType',
+    'select count(*) as numOfViolation, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId group by r.violationCategory',
     function (error, result) {
       if (error) {
         console.log({ error });
@@ -123,7 +146,7 @@ violationsAPI.get('/violations/type', async (req, res, next) => {
 violationsAPI.get('/violations/user/type', async (req, res) => {
   const con = initializeConnection();
   con.query(
-    'SELECT u.userId, u.username, v.violationType, count(1) as numOfViolations FROM `database-1`.`Violations` v, `database-1`.`Users` u WHERE v.userId = u.userId GROUP BY u.userId, u.username, v.violationType',
+    'select count(1) as numOfViolation, v.username, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId group by v.username, r.violationCategory',
     function (error, result) {
       if (error) {
         console.log({ error });
@@ -140,8 +163,9 @@ violationsAPI.get('/violations/user/type', async (req, res) => {
 
 violationsAPI.get('/violations/user/:userId', async (req, res, next) => {
   const con = initializeConnection();
+  console.log(req.params.userId);
   con.query(
-    'SELECT * FROM `database-1`.`Violations` WHERE userId=' + req.params.userId,
+    `SELECT u.username FROM \`database-1\`.\`Violations\` v, \`database-1\`.\`Users\` u WHERE v.userId='${req.params.userId}' and u.userId='${req.params.userId}'`,
     function (error, result) {
       if (error) {
         console.log({ error });

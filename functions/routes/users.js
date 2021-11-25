@@ -63,55 +63,55 @@ usersAPI.post(
 );
 
 usersAPI.patch(
-  '/users/:userId',
-  validateRequest(userSchema.userUpdateById, 'params'),
-  async (req, res) => {
-    const con = initializeConnection();
-    console.log(req.body.username);
-    console.log(req.params.userId);
-    con.query(
-      `update \`database-1\`.\`Users\` set username= '${req.body.username}' where userId= '${req.params.userId}'`,
-      function (error, result) {
-        if (error) {
-          console.log({ error });
-          con.end();
-          return res.status(500).send(error);
-        }
-        if (result) {
-          console.log({ result });
-          con.end();
-          return res.status(200).send(result);
-        }
-      }
-    );
-  }
+    '/users/:userId',
+    validateRequest(userSchema.userUpdateById, 'params'),
+    async (req, res) => {
+        const con = initializeConnection();
+        console.log(req.body.username);
+        console.log(req.params.userId);
+        con.query(
+            `update \`database-1\`.\`Users\` set username= '${req.body.username}' where userId= '${req.params.userId}'`,
+            function (error, result) {
+                if (error) {
+                    console.log({ error });
+                    con.end();
+                    return res.status(500).send(error);
+                }
+                if (result) {
+                    console.log({ result });
+                    con.end();
+                    return res.status(200).send(result);
+                }
+            }
+        );
+    }
 );
 
 usersAPI.get('/users/', async (req, res) => {
-  const con = initializeConnection();
-  const uname = req.query.username;
-  const uid = req.query.userId;
-  let query;
-  if (uname) {
-    query = 'select * from `database-1`.`Users` where username="' + uname + '"';
-  } else if (uid) {
-    query = 'select * from `database-1`.`Users` where userId="' + uid + '"';
-  } else {
-    con.end();
-    return res.status(500).send({});
-  }
-  con.query(query, function (error, result) {
-    if (error) {
-      console.log({ error });
-      con.end();
-      return res.status(500).send(error);
+    const con = initializeConnection();
+    const uname = req.query.username;
+    const uid = req.query.userId;
+    let query;
+    if (uname) {
+        query = 'select * from `database-1`.`Users` where username="' + uname + '"';
+    } else if (uid) {
+        query = 'select * from `database-1`.`Users` where userId="' + uid + '"';
+    } else {
+        con.end();
+        return res.status(500).send({});
     }
-    if (result) {
-      console.log({ result });
-      con.end();
-      return res.status(200).send(result);
-    }
-  });
+    con.query(query, function (error, result) {
+        if (error) {
+            console.log({ error });
+            con.end();
+            return res.status(500).send(error);
+        }
+        if (result) {
+            console.log({ result });
+            con.end();
+            return res.status(200).send(result);
+        }
+    });
 });
 
 usersAPI.use(errorHandler);
