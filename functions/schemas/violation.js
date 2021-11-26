@@ -7,7 +7,7 @@ const violationSchema = Joi.object({
   prId: Joi.number().min(1).max(45).required(),
   filePath: Joi.string().min(1).max(120).required(),
   lineNumber: Joi.number().min(1).max(45).required(),
-  userId: Joi.number().integer().min(1).max(100).required(),
+  userId: Joi.string().min(1).max(45).required(),
   prTime: Joi.date().timestamp().required(),
   dateFound: Joi.date().required()
 });
