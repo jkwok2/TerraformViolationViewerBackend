@@ -1,7 +1,6 @@
 const sls = require('serverless-http');
 const express = require('express');
 const initializeConnection = require('./common');
-const { query } = require('express');
 
 const violationsAPI = express();
 violationsAPI.use(express.json());
@@ -16,59 +15,14 @@ violationsAPI.use((req, res, next) => {
   next();
 });
 
-// violationsAPI.post('/violations', async (req, res) => {
-//   const con = initializeConnection();
-//   const data = req.body;
-//   con.query(
-//     `Insert into \`database-1\`.\`Violations\` (username, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ?`,
-//     [data],
-//     function (err, result) {
-//       if (err) {
-//         console.log({ err });
-//         con.end();
-//         return res.status(500).send(err);
-//       }
-//       if (result) {
-//         console.log({ result });
-//         con.end();
-//         return res.status(200).send(result);
-//       }
-//     }
-//   );
-// });
-
 violationsAPI.post('/violations', async (req, res) => {
   const con = initializeConnection();
   let violationsAdded = 0;
   const data = req.body;
-  // const violationsQuery = util.promisify(con.query).bind(con);
-  console.log({ data });
-
-  // try {
-  //   let responses = data.map((violation) => {
-  //     return new Promise((resolve, reject) => {
-  //       const record = await query(`Insert into \`database-1\`.\`Violations\` (username, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.username}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`);
-  //       console.log({record})
-  //     });
-  //   });
-  //   await Promise.all(responses);
-  // } catch(err) {
-
-  // }
-  /*
-(async () => {
-  try {
-    const rows = await query('select count(*) as count from file_managed');
-    console.log(rows);
-  } finally {
-    conn.end();
-  }
-})()
-  */
 
   data.forEach((violation, index) => {
     con.query(
-      `Insert into \`database-1\`.\`Violations\` (username, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.username}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`,
+      `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`,
       function (err, result) {
         if (err) {
           console.log({ err });
