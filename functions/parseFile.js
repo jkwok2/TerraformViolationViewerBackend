@@ -434,9 +434,12 @@ module.exports.parseFile = async (event, context, callback) => {
             console.log(result.violations);
             console.log(result.violations[0]);
 
-            const userId = await getIdFromDB(username);
+            const user = await getIdFromDB(username);
 
-            const v = {"userId": userId,    //"105966689851359954303",
+            console.log(user);
+            console.log(user.email);
+
+            const v = {"userId": user.userId,    //"105966689851359954303",
                         "repoId":repo,
                         "prId": prId,
                         "filePath": "path",
@@ -457,12 +460,13 @@ module.exports.parseFile = async (event, context, callback) => {
 
             let emailPayload = {
                 name: username,           // name of recipient
+                address: user.email,
                 statVal: statVal,        // pass/fail/error
                 errCount: errCount,       // number of violations
                 repoName: repo        // name of pr repo
             }
         
-            invokeLambda(emailLambdaName, emailPayload, 'Event');
+            invokeLambda(emailLambdaName, emailPayload);
 
         })
         // const response = {
@@ -524,7 +528,7 @@ async function getIdFromDB(username) {
   
     const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
     return axios.get(db_url).then((res) => {
-        console.log(res.data[0]);
-        return res.data[0].userId;
+        console.log(res.data);
+        return res.data;
     });
   }

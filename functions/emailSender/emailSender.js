@@ -97,7 +97,8 @@ module.exports.emailSender = async function (event) {
     name = event.name;
     statVal = event.statVal;
     errCount = event.errCount;
-    repoName = event.repoName
+    repoName = event.repoName;
+    address = event.address;
     console.log("got stuff from monitor");
   } else {
     name = "Kevin"
@@ -113,6 +114,7 @@ module.exports.emailSender = async function (event) {
   console.log("statVal: " + statVal);
   console.log("errCount: " + errCount);
   console.log("repoName: " + repoName);
+  console.log("repoName: " + address);
 
   let temp;
   let tempData;
