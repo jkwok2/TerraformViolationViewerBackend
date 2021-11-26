@@ -110,7 +110,6 @@ violationsAPI.get('/violations/user/type', async (req, res) => {
     );
 });
 
-
 violationsAPI.get('/violations/user/:userId', async (req, res, next) => {
     const con = initializeConnection();
     console.log(req.params.userId);
