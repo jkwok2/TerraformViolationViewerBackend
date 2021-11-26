@@ -15,10 +15,33 @@ violationsAPI.use((req, res, next) => {
     next();
 });
 
+violationsAPI.post('/violations', async (req, res) => {
+    const con = initializeConnection();
+    const data = req.body;
+    console.log(data);
+    con.query(
+      `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values 
+                    ('${req.body.userId}', '${req.body.repoId}', '${req.body.prId}', '${req.body.filePath}', '${req.body.lineNumber}', '${req.body.ruleId}', '${req.body.prTime}', '${req.body.dateFound}')`,
+      //[data],
+      function (err, result) {
+        if (err) {
+          console.log({ err });
+          con.end();
+          return res.status(500).send(err);
+        }
+        if (result) {
+          console.log({ result });
+          con.end();
+          return res.status(200).send(result);
+        }
+      }
+    );
+  });
+
 violationsAPI.get('/violations', async (req, res) => {
     const con = initializeConnection();
     con.query(
-        'select v.violationId, r.ruleId, v.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId',
+        'select v.violationId, r.ruleId, u.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v, `database-1`.`Users` u where r.ruleId = v.ruleId and u.userId = v.userId',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -72,7 +95,7 @@ violationsAPI.get('/violations/type', async (req, res, next) => {
 violationsAPI.get('/violations/user/type', async (req, res) => {
     const con = initializeConnection();
     con.query(
-        'select count(1) as numOfViolation, v.username, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId group by v.username, r.violationCategory',
+        'select count(1) as numOfViolation, u.username, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v, `database-1`.`Users` u where r.ruleId = v.ruleId and v.userId = u.userId group by v.userId, r.violationCategory',
         function (error, result) {
             if (error) {
                 console.log({ error });
@@ -87,11 +110,12 @@ violationsAPI.get('/violations/user/type', async (req, res) => {
     );
 });
 
-violationsAPI.get('/violations/user/:username', async (req, res, next) => {
+
+violationsAPI.get('/violations/user/:userId', async (req, res, next) => {
     const con = initializeConnection();
-    console.log(req.params.username)
+    console.log(req.params.userId);
     con.query(
-        'SELECT * FROM `database-1`.`Violations` WHERE userId=' + req.params.username ,
+        `select v.violationId, r.ruleId, u.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, v.prTime, v.dateFound from \`database-1\`.\`Rules\` r, \`database-1\`.\`Violations\` v, \`database-1\`.\`Users\` u where r.ruleId = v.ruleId and v.userId='${req.params.userId}' and u.userId='${req.params.userId}'`,
         function (error, result) {
             if (error) {
                 console.log({ error });

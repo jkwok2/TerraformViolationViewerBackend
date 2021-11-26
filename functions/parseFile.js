@@ -4,9 +4,11 @@ const hcltojson = require('hcl-to-json');
 const { InvalidTerraformFileError, LineNumberNotFoundError, GrepError } = require("./additionalViolationErrors");
 const initializeConnection = require('./routes/common');
 const YAML = require('yaml')
+const axios = require('axios')
 
 // const invokeLambda = require('functions/utilities/invokeLambda.js');
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
+const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
 
 aws.config.region = process.region;
 //const spawn = require('child_process').spawn;
@@ -200,7 +202,8 @@ const addViolation = async(violationRule, resourceType, resourceName) => {
                             }
 
         console.log("violation found: " + JSON.stringify(violation));
-        violationsFound.push(violation);
+        violationsFound.push(violation);                   
+
     } catch (e) {
         console.log(`Violation is not added because of error: ${e}`);
     }
@@ -305,6 +308,10 @@ module.exports.parseFile = async (event, context, callback) => {
     const githubFullPath = event.githubFullPath;
     const filePath = dir + "/" + fileName;
 
+    const username = event.username;
+    const repo = event.repoName;
+    const prDate = event.prDate;
+
     // getFile(filePath, fileName, githubFullPath);
     console.log(`start reading file ${fileName}`);
     console.log(`start reading file ${filePath}`);
@@ -408,7 +415,7 @@ module.exports.parseFile = async (event, context, callback) => {
 
         
         
-        Promise.allSettled(pThreads).then(() => {
+        Promise.allSettled(pThreads).then( async () => {
             console.log("pThreads: " + pThreads);
 
             const result = {
@@ -423,6 +430,40 @@ module.exports.parseFile = async (event, context, callback) => {
             fs.writeFileSync(writePath, result);
             console.log("wrote " + writePath);
             // return callback(null, responseComplete);
+
+            console.log(result.violations);
+            console.log(result.violations[0]);
+
+            const userId = await getIdFromDB(username);
+
+            const v = {"userId": userId,    //"105966689851359954303",
+                        "repoId":repo,
+                        "prId": prId,
+                        "filePath": "path",
+                        "lineNumber":result.violations[0].lineNumber,
+                        "ruleId": result.violations[0].violationRuleId,
+                        "prTime": prDate,
+                        "dateFound": result.violations[0].dateFound};
+
+            
+            sendViolationsToDB(v); 
+            let statVal = "pass";
+            let errCount = 0;
+
+            if (result.violations.length > 0) {
+                statVal = "fail"
+                errCount = result.violations.length;
+            }
+
+            let emailPayload = {
+                name: username,           // name of recipient
+                statVal: statVal,        // pass/fail/error
+                errCount: errCount,       // number of violations
+                repoName: repo        // name of pr repo
+            }
+        
+            invokeLambda(emailLambdaName, emailPayload, 'Event');
+
         })
         // const response = {
         //     statusCode: 200,
@@ -459,3 +500,31 @@ function getRules(con, queryString)
             });
     });
 }
+
+function sendViolationsToDB(violation) {
+
+    console.log("sending a violation to db");
+    // console.log(violation);
+
+    const v = {"userId":"105966689851359954303","repoId":"Group4Test","prId":"788555280","filePath":"path","lineNumber":1,"ruleId":1,"prTime":"TBA","dateFound":1637827484447};
+
+    const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
+    return axios.post(url, v)
+        .then((res) => {
+            console.log(res.data);
+            return res.data;
+    }).catch((err) => {
+        console.log(err);
+    });
+}
+
+async function getIdFromDB(username) {
+
+    console.log(`requesting email from database for ${username}`);
+  
+    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    return axios.get(db_url).then((res) => {
+        console.log(res.data[0]);
+        return res.data[0].userId;
+    });
+  }

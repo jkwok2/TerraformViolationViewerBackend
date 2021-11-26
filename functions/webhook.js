@@ -70,7 +70,7 @@ module.exports.webhook = async (event, context, callback) => {
                         path: efsPath, 
                         originalPaths: []};
 
-    files.forEach(f => metadataPayload.originalPaths.push(efsPath + f.name));
+    files.forEach(f => metadataPayload.originalPaths.push(f.name));
 
 
     console.log(metadataPayload.originalPaths[0]);
@@ -85,28 +85,36 @@ module.exports.webhook = async (event, context, callback) => {
                                                             dir: efsPath, 
                                                             pullRequestId: pullRequest.id}));
 
+                                                            const username = event.username;
+                                                            const repo = event.repoName;
+                                                            const prDate = event.prDate;
+
     files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, 
                                                             dir: efsPath,
                                                             efsFilePath: efsPath + "/" + f.name, 
-                                                            githubFullPath: f.path}));
+                                                            githubFullPath: f.path, 
+                                                            username: pullRequest.username,
+                                                            prId: pullRequest.pullRequestId, 
+                                                            repoName: pullRequest.repo, 
+                                                            prDate: pullRequest.timestamp}));
 
-    const monitorPayload = { username: pullRequest.username, 
-                                userid: pullRequest.userid, 
-                                repoName: pullRequest.repo,
-                                dir: efsPath, 
-                                numFiles: files.length * 2 + 1}  // parseFile creates duplicate for each file, plus metadatafile
+    // const monitorPayload = { username: pullRequest.username, 
+    //                             userid: pullRequest.userid, 
+    //                             repoName: pullRequest.repo,
+    //                             dir: efsPath, 
+    //                             numFiles: files.length * 2 + 1}  // parseFile creates duplicate for each file, plus metadatafile
 
-    var numFiles = files.length;
-    var newNumFiles = numFiles * 2 + 1;
+    // var numFiles = files.length;
+    // var newNumFiles = numFiles * 2 + 1;
 
-    console.log("file.length: " +  numFiles);
-    console.log("file.length * 2 + 1: " +  newNumFiles);
+    // console.log("file.length: " +  numFiles);
+    // console.log("file.length * 2 + 1: " +  newNumFiles);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // await new Promise(resolve => setTimeout(resolve, 2000));
 
-    invokeLambda(monitorLambdaName, monitorPayload);
+    // invokeLambda(monitorLambdaName, monitorPayload);
 
-    console.log(monitorPayload);
+    // console.log(monitorPayload);
 
     return callback(null, response);
 };

@@ -11,6 +11,8 @@ const readFileLambdaName = 'hsbc-backend-app-meg-dev-readFile';
 const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
 
 module.exports.monitor = async (event, callback) => {
+
+    sendViolationsToDB("test");
     
     // number of files to scan for pr
     const dir = event.dir;
@@ -103,28 +105,29 @@ module.exports.monitor = async (event, callback) => {
     //var test = getViolations(files[0].content.violations, user.userId, event.repoName, event.pullRequestId, "TBA");
 
     console.log("files[0] " + files[0]);
-    console.log("files[0] " + files[0].toString());
+    console.log("files[0] " + files[0].content);
 
     //violationPayload.push(test);
     var violationPayload = [];
 
-    files.forEach(f => violationPayload.push(getViolations(f.content.violations, event.userId, event.repoName, event.pullRequestId, "TBA")));
 
-    console.log("violation payload: " + violationPayload);
+    // files.forEach(f => violationPayload.push(getViolations(f.content.violations, event.userId, event.repoName, event.pullRequestId, "TBA")));
 
-    await sendViolationsToDB(violationPayload[0]);
+    // console.log("violation payload: " + violationPayload);
 
-    var errCount = 0;
+    // await sendViolationsToDB(violationPayload[0]);
 
-    if (violationPayload.length > 0) {
-        var statVal = "fail";
-        errCount = violationPayload.length;
-    } 
+    // var errCount = 0;
+
+    // if (violationPayload.length > 0) {
+    //     var statVal = "fail";
+    //     errCount = violationPayload.length;
+    // } 
 
     let emailPayload = {
         name: event.username,           // name of recipient
         statVal: "pass",        // pass/fail/error
-        errCount: errCount,       // number of violations
+        errCount: "123",       // number of violations
         repoName: event.repoName        // name of pr repo
     }
 
@@ -176,9 +179,9 @@ function getViolations(results, user, repo, pullRequestId, prTime) {
 function sendViolationsToDB(violation) {
 
     console.log("sending a violation to db");
-    console.log(violation);
+    // console.log(violation);
 
-    const v = {"userId":105966689851359954303,"repoId":"Group4Test","prId":"788555280","filePath":"path","lineNumber":1,"ruleId":1,"prTime":"TBA","dateFound":1637827484447};
+    const v = {"userId":"105966689851359954303","repoId":"Group4Test","prId":"788555280","filePath":"path","lineNumber":1,"ruleId":1,"prTime":"TBA","dateFound":1637827484447};
 
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
     return axios.post(url, v)
@@ -202,4 +205,4 @@ async function getUserFromDB(username) {
     }).catch((err) => {
       console.log(err);
   });
-  }
+}
