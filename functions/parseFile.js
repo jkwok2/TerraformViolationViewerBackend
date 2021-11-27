@@ -21,7 +21,7 @@ const file = {
     githubFullPath: "",
 };
 
-function mapRules(data) {
+function mapRulesToYAMLContent(data) {
     return data.map(x => {
         let yamlContent = YAML.parse(x.content);
         x.content = yamlContent
@@ -30,7 +30,7 @@ function mapRules(data) {
 }
 
 function setValue(result) {
-    return mapRules(result);
+    return mapRulesToYAMLContent(result);
     // console.log('rules: ' + rulez);
 }
 
@@ -102,64 +102,52 @@ function createObject(rulez) {
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 
 
+const grepWithShell = (grepSearch, filePath) => {
+    return new Promise((resolve, reject) => {
 
-const grepWithShell = async(grepSearch) => {
-    // const child = spawn('grep', ['-n -E', grepSearch, file.content]);
-    const child = exec(`grep -n -E ${grepSearch} ${file.content}`);
-    let res = '';
-    child.stdout.on('data', (buffer) => { res += buffer.toString(); });
-    child.stdout.on('end', () => {});
-    return res;
+        let res = '';
+        const child = exec(`grep -n ${grepSearch} ${filePath}`); // exec('grep', ['-n', grepSearch, filePath]);
+        child.on('error', (err) => { resolve(res) });
+        child.stdout.on('error', (err) => { resolve(res) });
+        child.stdout.on('data', function (buffer) { res += buffer.toString(); });
+        child.stdout.on('end', function () {
+            if (res === ''){
+                res = 'err: could not find property or value in file'
+            }
+            resolve(res)
+        });
+    });
 };
 
-// function grepWithShell(valueToLookFor) {
-//     const f = `sdf dfd resource is in this line`;
-//     return new Promise((resolve, reject) => {
-//         const spawn = require('child_process').spawn;
-//         let res = '';
-//         console.log(`In grepWithShell, file: ${f}`);
-//         const child = spawn('grep', ['-n', valueToLookFor, f]);
-//         child.stdout.on('data', function (buffer) { res += buffer.toString(); });
-//         child.stdout.on('end', function () { 
-//             if (res === ''){
-//                 res = 'err: could not find property or value in file'
-//             }
-//             console.log(`res: ${res}`);
-//             resolve(res) 
-//         });
-//     });
-// };
+const getLineNumber = (data) => {
+    //TODO: TA --- I think this is the same problem as Seven of Spades promise.chain hell
 
-const getLineNumber = async(resourceType, resourceName) => {
-    return 1;
-    console.log(`Inside getLineNumber with resourceType: ${resourceType}, resourceName: ${resourceName}`);
-    // const grepSearch = `resource "${resourceType}" "${resourceName}"`;
-    const grepSearch = `resource`;
-    console.log(`grepSearch: ${grepSearch}`);
-    try{
-        const lines = await grepWithShell(grepSearch);
-        if (lines === "") {
-            //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, LINE_NUMBER_NOT_FOUND, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
-            console.log(`lines === "", error thrown`);
-            const parseError = new LineNumberNotFoundError(file.githubFullPath, grepSearch);
-            addError(parseError);
-        }
-        const lineNumber = lines.split(":")[0];
-        console.log(`lineNumber: ${lineNumber}`);
-        if (Number.isInteger(lineNumber)) return lineNumber;
-        console.log(`lineNumber is not a number, error thrown`);
-        const grepError = new GrepError(file.githubFullPath, grepSearch, `Unexpected value returned from line search: ${lines}`);
-        addError(grepError);
-    } catch (e) {
-        console.log(`error caught in getLineNumber`);
-        if (e instanceof LineNumberNotFoundError || e instanceof GrepError) throw e;
-        else {
-            //violationsFound.push(new Violation(DEFAULT_VIOLATION_ID, GREP_ERROR, DEFAULT_VIOLATION_LINE_NUMBER, resourceType, resourceName));
-            const grepError =  new GrepError(file.githubFullPath, grepSearch, e);
-            addError(grepError);
-            throw grepError;
-        }
-    }
+    const grepSearch = `${data.resourceType}`;
+    return new Promise((resolve, reject) => {
+        grepWithShell(grepSearch, data.filePath).then((lines) => {
+            try{
+                if (lines === "") {
+                    data.lineNumber = -1;
+                }
+                const lineNumber = lines.split(":")[0];
+                console.log(`lineNumber: ${lineNumber}`);
+                data.lineNumber = Number(lineNumber);
+                delete data.resourceType;
+                delete data.resourceName;
+            } catch (e) {
+                // TODO: TA - not sure about what is a grep error. I will just put line number -1
+                data.lineNumber = -1;
+                delete data.resourceTypel;
+                delete data.resourceName;
+            }
+            resolve(data);
+        }).catch((err) => {
+            delete data.resourceType;
+            delete data.resourceName;
+            resolve(data);
+        })
+    });
+
 }
 
 const hasProperty = async(resource, propertyKey) => {
@@ -187,19 +175,21 @@ const addError = async(e) => {
     throw e;
 }
 
-const addViolation = async(violationRule, resourceType, resourceName) => {
+
+const addViolation = async(violationRule, resourceType, resourceName, filePath) => {
     console.log(`Inside addViolation with violationRule: ${violationRule}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
     try {
-        const lineNumber = await getLineNumber(resourceType, resourceName);
+        // const lineNumber = await getLineNumber(resourceType, resourceName, filePath);
         // userId, filePath, lineNumber, violationType, dateFound
-        const violation = { violationRuleId: violationRule.id, 
-                            //severity: violationRule.severity,
-                            //category: violationRule.category,
-                            lineNumber: lineNumber,
-                            dateFound: Date.now(),
-                            //resourceType: resourceType,
-                            //resourceName: resourceName
-                            }
+        const violation = {
+            violationRuleId: violationRule.id,
+            filePath: filePath,
+            //category: violationRule.category,
+            lineNumber: undefined,
+            dateFound: Date.now(),
+            resourceType: resourceType, // TODO: TA temp data
+            resourceName: resourceName
+        }
 
         console.log("violation found: " + JSON.stringify(violation));
         violationsFound.push(violation);                   
@@ -210,7 +200,7 @@ const addViolation = async(violationRule, resourceType, resourceName) => {
 }
 
 // has no key, has no value at key, has no value in range at key
-const hasNotSingle = async(resourceType, resourceName, hasNotViolationRule, resource) => {
+const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, resource, filePath) => {
     // check if violation rule is properly formatted, if not ignore rule
     if (!hasProperty(hasNotViolationRule, "key")) return;
     try {
@@ -219,7 +209,7 @@ const hasNotSingle = async(resourceType, resourceName, hasNotViolationRule, reso
         // checking for value
         if (hasNotViolationRule.hasOwnProperty("value")) {
             if (getPropertyValue(resource, hasNotViolationRule.key) === hasNotViolationRule.value) {
-                addViolation(hasNotViolationRule, resourceType, resourceName);
+                addViolation(hasNotViolationRule, resourceType, resourceName, filePath);
             }
             return;
         }
@@ -228,19 +218,19 @@ const hasNotSingle = async(resourceType, resourceName, hasNotViolationRule, reso
             const rangeValues = hasNotViolationRule.range;
             const value = getPropertyValue(resource, hasNotViolationRule.key);
             if (rangeValues.some(v => v === value)) {
-                addViolation(hasNotViolationRule, resourceType, resourceName);
+                addViolation(hasNotViolationRule, resourceType, resourceName, filePath);
             }
             return;
         }
         // has property when it shouldn't
-        addViolation(hasNotViolationRule, resourceType, resourceName);
+        addViolation(hasNotViolationRule, resourceType, resourceName, filePath);
     } catch (e) {
         console.log(`Resource type: ${resourceType}, resource name: ${resourceName}, violation rule: ${hasNotViolationRule.id} skipped due to parsing error`);
     }
 }
 
 // has key, has key value, has key value in range
-const hasSingle = async(resourceType, resourceName, hasViolationRule, resource) => {
+const hasSingle = async (resourceType, resourceName, hasViolationRule, resource, filePath) => {
     // check if violation rule is properly formatted, if not ignore rule
     console.log(`In hasSingle with resourceType: ${resourceType}, resourceName: ${resourceName}, hasViolationRule: ${hasViolationRule}, resource: ${resource}`);
     if (!hasProperty(hasViolationRule, "key")) return;
@@ -248,14 +238,14 @@ const hasSingle = async(resourceType, resourceName, hasViolationRule, resource) 
     try {
         // check if key is in resource
         if (!hasProperty(resource, hasViolationRule.key)) {
-            addViolation(hasViolationRule, resourceType, resourceName);
+            addViolation(hasViolationRule, resourceType, resourceName, filePath);
             console.log(`Property is missing for ${resourceName}`);
             return;
         }
         // if checking for value, see if they match
         if (hasProperty(hasViolationRule, "value")) {
             if (getPropertyValue(resource, hasViolationRule.key) !== hasViolationRule.value) {
-                addViolation(hasViolationRule, resourceType, resourceName);
+                addViolation(hasViolationRule, resourceType, resourceName, filePath);
                 console.log(`Value does not equate for ${resourceName}`);
             }
             return;
@@ -265,7 +255,7 @@ const hasSingle = async(resourceType, resourceName, hasViolationRule, resource) 
             const rangeValues = hasViolationRule.range;
             const value = getPropertyValue(resource, hasViolationRule.key);
             if (!rangeValues.some(v => v === value)) {
-                addViolation(hasViolationRule, resourceType, resourceName);
+                addViolation(hasViolationRule, resourceType, resourceName, filePath);
                 console.log(`Range does not equate for ${resourceName}`);
             }
             return;
@@ -278,24 +268,34 @@ const hasSingle = async(resourceType, resourceName, hasViolationRule, resource) 
 }
 
 
-const hasNotList = async(resourceType, resourceName, hasNotViolationRules, resource) => {
+const hasNotList = async(resourceType, resourceName, hasNotViolationRules, resource, filePath) => {
     hasNotViolationRules.forEach(r => {
-        hasNotSingle(resourceType, resourceName, r, resource);
+        hasNotSingle(resourceType, resourceName, r, resource, filePath);
     })
 }
 
-const hasList = async(resourceType, resourceName, hasViolationRules, resource) => {
+const hasList = async(resourceType, resourceName, hasViolationRules, resource, filePath) => {
     hasViolationRules.forEach(r => {
-        hasSingle(resourceType, resourceName, r, resource);
+        hasSingle(resourceType, resourceName, r, resource, filePath);
     });
 }
 
-const processResource = async(resource, violationRules, resourceType, resourceName) => {
-    if (violationRules.hasOwnProperty('has')) {
-        hasList(resourceType, resourceName, violationRules.has, resource);
-    }
-    if (violationRules.hasOwnProperty('has_not')) {
-        hasNotList(resourceType, resourceName, violationRules.has_not, resource);
+//TODO: TA -- adding file path because of grep
+const processResource = async(resource, violationRules, resourceType, resourceName, filePath) => {
+
+    // TODO: TA - minor fix from the entire rules object to actually just its content?
+    let rulesObject =  violationRules.content
+
+    if (typeof rulesObject !== "undefined") {
+        if (rulesObject.hasOwnProperty('has')) {
+            hasList(resourceType, resourceName, rulesObject.has, resource, filePath);
+
+
+        } else if (rulesObject.hasOwnProperty('has_not')) {
+            hasNotList(resourceType, resourceName, rulesObject.has_not, resource, filePath);
+        }
+    } else {
+        return Promise.resolve(true);
     }
 }
 
@@ -309,6 +309,7 @@ module.exports.parseFile = async (event, context, callback) => {
     const filePath = dir + "/" + fileName;
 
     const username = event.username;
+    const prID = event.prId; // TODO - TA: I couldnt find this but it seems required for the DB
     const repo = event.repoName;
     const prDate = event.prDate;
 
@@ -319,10 +320,13 @@ module.exports.parseFile = async (event, context, callback) => {
     // hacky way to get around race condition if file doesn't exist in EFS yet
     var fileNotFound = true;
     var terraformFile;
+    //TODO: TA - add something as a number of tries, or get rid of the while. If you are using only sync functions, do you need the loop?
+    //TODO: TA - reason being is that this can fail silently. Like your lambda func might get stuck here
     while (fileNotFound) {
         if (fs.existsSync(filePath)) {
             const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
             //console.log(tempFile);
+            //TODO: TA - this line is strange. You read it with one encoding, then use a different encoding for the buffer
             terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
             fileNotFound = false;
             console.log("done reading file " + filePath);
@@ -351,7 +355,8 @@ module.exports.parseFile = async (event, context, callback) => {
             return callback(null, responseComplete);
         }
 
-        const parsedResources = parsedTerraformFile.resource;
+        let parsedResources = parsedTerraformFile.resource; // TODO: TA - there was some type casting here.
+        parsedResources = JSON.parse(JSON.stringify(parsedResources));
         const resourceTypes = Object.keys(parsedResources);
         console.log(`The AWS Resource Types in this file are ${JSON.stringify(resourceTypes)}`);
 
@@ -361,121 +366,106 @@ module.exports.parseFile = async (event, context, callback) => {
         console.log(`Query string: ${queryString}`);
 
         const con = initializeConnection();
-        // let rulez = [];
-        // con.query(
-        //     //'SELECT * FROM `database-1`.`Rules` WHERE status = "active" AND (awsresource = "aws_athena_workgroup" OR awsresource = "aws_elb")',
-        //     queryString,
-        //     function (err, result) {
-        //         if (err) {
-        //             throw err;
-        //         }
-        //         if (result) {
-        //             console.log(result);
-        //             rulez = setValue(result);
-        //             result = createObject(rulez)
-        //             console.log(JSON.stringify(result));
-        //             con.end();
 
-        var pThreads = await getRules(con, queryString).then((result) => {
-                    console.log("after getRules");
+        var pThreads = [];
+        try {
+            let lstOfRulez = await getRules(con, queryString);
+            lstOfRulez = mapRulesToYAMLContent(lstOfRulez);
 
-                    console.log(result);
-                    rulez = setValue(result);
-                    result = createObject(rulez)
-                    console.log(JSON.stringify(result));
-                    
-                    var processThreads = [];
+            console.log("after getRules");
+            console.log(JSON.stringify(lstOfRulez));
 
-                    for (const violationRulesByResourceType of result) {
-                        
+            for (let violationRulesByResourceType of lstOfRulez) {
+
+
+                let rulezData = JSON.stringify(violationRulesByResourceType);
+
+
+                if (rulezData !== '{}' && Object.keys(violationRulesByResourceType).length > 0 && violationRulesByResourceType.awsresource === resourceTypesStringify) {
+                    console.log(`inside loop ${rulezData}`);
+                    const resourceType = violationRulesByResourceType.awsresource;
+                    const resources = parsedResources[resourceType];
+                    const resourceNames = Object.keys(resources);
+
+                    for (const rn of resourceNames) {
+                        // TODO: TA - another type casting. This right now, violationRulesByResourceType is a RowDataPacket, better have it as a plain object (for now), hence why I call JSON.parse
                         //figure out why this is broken
-                        if (JSON.stringify(violationRulesByResourceType) !== '{}' && Object.keys(violationRulesByResourceType).length > 0 && violationRulesByResourceType.hasOwnProperty("aws_resource_type")) {
-                            console.log(`inside loop ${JSON.stringify(violationRulesByResourceType)}`);
-                            const resourceType = violationRulesByResourceType.aws_resource_type;
-                            const resources = parsedResources[resourceType];
-                            const resourceNames = Object.keys(resources);
-            
-                            for (const rn of resourceNames) {
-                                // should be Promise.allSettled
-                                processThreads.push(processResource(resources[rn], violationRulesByResourceType, resourceType, rn));
-                                console.log(`Completed processing of ${rn}`);
-                            }
-                        }
-                        
+                        // should be Promise.allSettled
+                        pThreads.push(processResource(resources[rn], JSON.parse(rulezData), resourceType, rn, filePath));
+                        console.log(`set thread to process of ${rn}`); // TODO: TA - nit, it s a promise, might not be finished at this point in time. I really don't like promises :~~
                     }
-                    console.log("process Threads: " + processThreads);
-                    return processThreads;
+                }
 
-                }).catch((err) => setImmediate(() => { throw err; }));
+            }
+            console.log("process Threads: " + pThreads);
+        } catch (e){
+            setImmediate(() => { throw err; });
+        }
 
 
-        //         }
-        //     }
-        // )
+        Promise.all(pThreads).then( async () => {
 
-        
-        
-        Promise.allSettled(pThreads).then( async () => {
-            console.log("pThreads: " + pThreads);
+            let vThreads = []
+            for (const viol of violationsFound){
+                vThreads.push(getLineNumber(viol));
+            }
 
-            const result = {
-                errors: errorsEncountered,
-                violations: violationsFound,
-            };
-            console.log(`result: ${JSON.stringify(result)}`);
-            console.log("dir: " + dir);
-            const writePath = dir + "/result_" + fileName;
-    
-            console.log("writing to " + writePath);
-            fs.writeFileSync(writePath, result);
-            console.log("wrote " + writePath);
-            // return callback(null, responseComplete);
+            console.log("about to get line numbers... avoiding chain promise hell...")
 
-            console.log(result.violations);
-            console.log(result.violations[0]);
+            Promise.all(vThreads).then( async (violationLst) => {
+                console.log(  "opsie daisy!")
 
-            const user = await getIdFromDB(username);
+                const result = {
+                    errors: errorsEncountered,
+                    violations: violationsFound,
+                };
 
-            console.log(user);
-            console.log(user.email);
+                // const userId = await getIdFromDB(username);
 
-            const v = {"userId": user.userId,    //"105966689851359954303",
-                        "repoId":repo,
-                        "prId": prId,
-                        "filePath": "path",
-                        "lineNumber":result.violations[0].lineNumber,
-                        "ruleId": result.violations[0].violationRuleId,
+                for(const violationData of violationLst) {
+                    // TODO: TA - need to put the file write back
+
+                    const dbData = {
+                        "userId": userId,    //"105966689851359954303",
+                        "repoId": repo,
+                        "prId": prID,
+                        "filePath": "",
+                        "lineNumber": violationData.lineNumber,
+                        "ruleId": violationData.violationRuleId,
                         "prTime": prDate,
-                        "dateFound": result.violations[0].dateFound};
+                        "dateFound": violationData.dateFound
+                    };
 
-            
-            sendViolationsToDB(v); 
-            let statVal = "pass";
-            let errCount = 0;
+                    await sendViolationsToDB(dbData);
 
-            if (result.violations.length > 0) {
-                statVal = "fail"
-                errCount = result.violations.length;
-            }
+                }
 
-            let emailPayload = {
-                name: username,           // name of recipient
-                address: user.email,
-                statVal: statVal,        // pass/fail/error
-                errCount: errCount,       // number of violations
-                repoName: repo        // name of pr repo
-            }
-        
-            invokeLambda(emailLambdaName, emailPayload);
+                console.log("done?")
 
-        })
+                // TODO: TA - check how to call the code below?
+                // let emailPayload = {
+                //     name: username,           // name of recipient
+                //     statVal: statVal,        // pass/fail/error
+                //     errCount: errCount,       // number of violations
+                //     repoName: repo        // name of pr repo
+                // }
+                //
+                // invokeLambda(emailLambdaName, emailPayload, 'Event');
+            }).catch((err2) => {
+                // TODO: TA - need to throw some error response with bad request here?
+                console.log(err);
+            });
+
+        }).catch((err) => {
+            // TODO: TA - need to throw some error response with bad request here?
+
+        });
         // const response = {
         //     statusCode: 200,
         //     headers: { 'Content-Type': 'application/json' },
         //     body: result
         // }
-    
-        
+
     } catch (e) {
         //const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
         console.log("error");
@@ -490,8 +480,7 @@ function getRules(con, queryString)
     return new Promise(function(resolve, reject) {
 
         let rulez = [];
-        con.query(
-            queryString,
+        con.query(queryString,
             function (err, result) {
                 if (err) {
                     console.log("error from db");
@@ -505,30 +494,45 @@ function getRules(con, queryString)
     });
 }
 
-function sendViolationsToDB(violation) {
+const sendViolationsToDB = async (violation) => {
 
     console.log("sending a violation to db");
     // console.log(violation);
-
-    const v = {"userId":"105966689851359954303","repoId":"Group4Test","prId":"788555280","filePath":"path","lineNumber":1,"ruleId":1,"prTime":"TBA","dateFound":1637827484447};
-
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
-    return axios.post(url, v)
+    return axios.post(url, violation)
         .then((res) => {
             console.log(res.data);
             return res.data;
     }).catch((err) => {
         console.log(err);
     });
-}
+};
 
+// TODO: I don't know what is the username, I tried both my github ID and email, but I got undefined
 async function getIdFromDB(username) {
 
     console.log(`requesting email from database for ${username}`);
   
     const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
     return axios.get(db_url).then((res) => {
-        console.log(res.data);
-        return res.data;
+        console.log(res.data[0]);
+        return res.data[0].userId;
+    }).catch((err) => {
+        return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
     });
   }
+
+
+// TODO: TA - uncomment the code below and run it locally for easier debugging :-)
+// event = {
+//     fileName: "ensure-docdb-has-audit-logs-enabled.test.wrong-value.tf",
+//     dir: "/home/msarthur/Workspace/yaml-rules-and-terraform-violations/storage",
+//     username:  "marquesarthur",
+//     repo: "https://github.com/CPSC-319/yaml-rules-and-terraform-violations",
+//     prDate: Date(),
+//     githubFullPath: "????",
+//
+//
+// }
+//
+// parseFile(event, undefined, undefined);
