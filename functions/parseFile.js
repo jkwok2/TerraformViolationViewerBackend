@@ -420,7 +420,7 @@ module.exports.parseFile = async (event, context, callback) => {
                     violations: violationsFound,
                 };
 
-                // const userId = await getIdFromDB(username);
+                const userId = await getIdFromDB(username);
 
                 for(const violationData of violationLst) {
                     // TODO: TA - need to put the file write back
