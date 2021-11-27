@@ -2,7 +2,7 @@ const Joi = require('joi');
 
 const violationSchema = Joi.object({
   violationId: Joi.number().integer().min(1).max(100).required(),
-  ruleId: Joi.string().min(1).max(50).required(),
+  ruleId: Joi.number().min(1).max(50).required(),
   repoId: Joi.string().min(1).max(45).required(),
   prId: Joi.number().min(1).max(45).required(),
   filePath: Joi.string().min(1).max(120).required(),
