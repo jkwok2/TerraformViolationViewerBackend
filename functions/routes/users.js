@@ -18,12 +18,6 @@ usersAPI.use((req, res, next) => {
   next();
 });
 
-// const con = initializeConnection();
-// con.query('SET GLOBAL connect_timeout=7200');
-// con.query('SET GLOBAL interactive_timeout=7200');
-// con.query('SET GLOBAL wait_timeout=7200');
-// con.end();
-
 usersAPI.post(
   '/users',
   validateRequest(userSchema.userPost),
