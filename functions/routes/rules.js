@@ -9,55 +9,58 @@ const rulesAPI = express();
 rulesAPI.use(express.json());
 
 rulesAPI.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, PATCH, DELETE'
-    );
-    next();
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, PATCH, DELETE'
+  );
+  next();
 });
 
 rulesAPI.get('/rules', async (req, res) => {
-    const con = initializeConnection();
-    con.query(
-        'select * from `database-1`.`Rules`',
-        function (error, result) {
-            if (error) {
-                console.log({ error });
-                con.end();
-                return res.status(500).send(error);
-            }
-            if (result) {
-                console.log({ result });
-                return res.status(200).send(result);
-            }
-        }
-    );
+  const con = initializeConnection();
+  try {
+    const [rows, _] = await con.query('select * from `database-1`.`Rules`');
+    console.log({ rows });
+    con.end();
+    return res.status(200).send(rows);
+  } catch (err) {
+    console.log({ err });
+    con.end();
+    return res.status(500).send(err);
+  }
 });
 
 rulesAPI.patch(
-    '/rules/:ruleId',
-    validateRequest(ruleSchema.updateRuleById, 'params'),
-    async (req, res) => {
-        const con = initializeConnection();
-        con.query(
-            `update \`database-1\`.\`Rules\` set status= '${req.body.status}' where ruleId= '${req.params.ruleId}'`,
-            function (error, result) {
-                if (error) {
-                    console.log(req.body.status, req.params.ruleId);
-                    console.log({ error });
-                    con.end();
-                    return res.status(500).send(error);
-                }
-                if (result) {
-                    console.log({ result });
-                    con.end();
-                    return res.status(200).send(result);
-                }
-            }
-        );
+  '/rules/:ruleId',
+  validateRequest(ruleSchema.updateRuleById, 'params'),
+  async (req, res) => {
+    const con = initializeConnection();
+    let query;
+    console.log('start: ', req.body, req.params);
+    if (req.body.status) {
+      console.log('status: ', req.body.status, req.params.ruleId);
+      query = `update \`database-1\`.\`Rules\` set status='${req.body.status}' where ruleId='${req.params.ruleId}'`;
+    } else if (req.body.severity) {
+      console.log('severity: ', req.body.severity, req.params.ruleId);
+      query = `update \`database-1\`.\`Rules\` set severity='${req.body.severity}' where ruleId='${req.params.ruleId}'`;
+    } else {
+      console.log('else: ', req.body, req.params);
+      con.end();
+      return res.status(500).send({});
     }
+    try {
+      const [rows, _] = await con.query(query);
+      console.log({ rows });
+      con.end();
+      return res.status(200).send(rows);
+    } catch (err) {
+      console.log({ err });
+      con.end();
+      return res.status(500).send(err);
+    }
+  }
 );
 
 module.exports.handler = sls(rulesAPI);

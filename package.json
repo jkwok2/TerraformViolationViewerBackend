@@ -13,6 +13,7 @@
     "latest": "^0.2.0",
     "latest-version": "^6.0.0",
     "mysql": "^2.18.1",
+    "mysql2": "^2.3.3",
     "serverless-http": "^2.7.0",
     "uuid": "^8.3.2",
     "yaml": "^1.10.2"
