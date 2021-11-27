@@ -94,4 +94,24 @@ category: LOGGING
 has:
   - key: "access_logs.enabled"
     value: true
+'),
+('yutian-test.yaml','aws_athena_workgroup','MEDIUM','GENERAL','active',NULL,'2021-11-18 12:21:56','resource: aws_athena_workgroup
+severity: MEDIUM
+category: GENERAL
+has:
+  - key: "configuration.result_configuration.encryption_configuration"
+'),
+('yutian-test.yaml','aws_security_group','MEDIUM','NETWORKING','active',NULL,'2021-11-18 12:21:56','resource: aws_security_group
+severity: MEDIUM
+category: NETWORKING
+has:
+  - key: "ingress.cidr_blocks"
+    value: "0.0.0.0/0"
+'),
+('yutian-test.yaml','aws_cloudfront_distribution','MEDIUM','NETWORKING','active',NULL,'2021-11-18 12:21:56','resource: aws_cloudfront_distribution
+severity: MEDIUM
+category: NETWORKING
+has:
+  - key: "default_cache_behavior.viewer_protocol_policy"
+    range: ["redirect-to-https", "https-only"]
 ');

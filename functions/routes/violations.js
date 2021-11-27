@@ -15,6 +15,29 @@ violationsAPI.use((req, res, next) => {
     next();
 });
 
+violationsAPI.post('/violations', async (req, res) => {
+    const con = initializeConnection();
+    const data = req.body;
+    console.log(data);
+    con.query(
+      `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values 
+                    ('${req.body.userId}', '${req.body.repoId}', '${req.body.prId}', '${req.body.filePath}', '${req.body.lineNumber}', '${req.body.ruleId}', '${req.body.prTime}', '${req.body.dateFound}')`,
+      //[data],
+      function (err, result) {
+        if (err) {
+          console.log({ err });
+          con.end();
+          return res.status(500).send(err);
+        }
+        if (result) {
+          console.log({ result });
+          con.end();
+          return res.status(200).send(result);
+        }
+      }
+    );
+  });
+
 violationsAPI.get('/violations', async (req, res) => {
     const con = initializeConnection();
     con.query(
