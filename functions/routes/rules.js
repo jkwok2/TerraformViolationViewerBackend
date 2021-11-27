@@ -37,10 +37,21 @@ rulesAPI.patch(
   validateRequest(ruleSchema.updateRuleById, 'params'),
   async (req, res) => {
     const con = initializeConnection();
+    let query;
+    console.log('start: ', req.body, req.params);
+    if (req.body.status) {
+      console.log('status: ', req.body.status, req.params.ruleId);
+      query = `update \`database-1\`.\`Rules\` set status='${req.body.status}' where ruleId='${req.params.ruleId}'`;
+    } else if (req.body.severity) {
+      console.log('severity: ', req.body.severity, req.params.ruleId);
+      query = `update \`database-1\`.\`Rules\` set severity='${req.body.severity}' where ruleId='${req.params.ruleId}'`;
+    } else {
+      console.log('else: ', req.body, req.params);
+      con.end();
+      return res.status(500).send({});
+    }
     try {
-      const [rows, _] = await con.query(
-        `update \`database-1\`.\`Rules\` set status='${req.body.status}' where ruleId='${req.params.ruleId}'`
-      );
+      const [rows, _] = await con.query(query);
       console.log({ rows });
       con.end();
       return res.status(200).send(rows);
