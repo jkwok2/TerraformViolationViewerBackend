@@ -66,13 +66,14 @@ rulesAPI.patch(
   }
 );
 
-rulesAPI.post('/addRule', upload.any(), async function (req, res) {
+rulesAPI.post('/addRule', upload.any(), async (req, res) => {
   console.log(req);
 
   const con = initializeConnection();
   try {
     await Promise.all(
       req.files.map(async (file) => {
+        let fileName = file.originalname;
         let contentStr = file.buffer.toString('utf8');
         console.log(contentStr)
         let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -82,7 +83,8 @@ rulesAPI.post('/addRule', upload.any(), async function (req, res) {
         if (category === undefined) {
           category = 'Not Detected'
         }
-        await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`)
+        const [result, _ ] = await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`);
+        console.log({result})
       })
     )
     con.end()
