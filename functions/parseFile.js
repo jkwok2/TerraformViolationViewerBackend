@@ -378,13 +378,9 @@ module.exports.parseFile = async (event, context, callback) => {
             console.log("after getRules");
             console.log(JSON.stringify(lstOfRulez));
 
-            console.log("first " + lstOfRulez[0]);
-
             for (let violationRulesByResourceType of lstOfRulez) {
-                console.log(violationRulesByResourceType)
 
                 let rulezData = JSON.stringify(violationRulesByResourceType);
-                console.log("rulezData " + rulezData);
 
                 if (rulezData !== '{}' && Object.keys(violationRulesByResourceType).length > 0 && resourceTypes.includes(violationRulesByResourceType.awsresource)) {
                     console.log(`inside loop ${rulezData}`);
@@ -433,8 +429,8 @@ module.exports.parseFile = async (event, context, callback) => {
                 // console.log("got user");
                 //console.log(await user.data[0]);
 
-                // const user = getIdFromDB(username);
-                // console.log("got user info " + user);
+                const user = await getUserFromDB(username);
+                console.log("got user info " + user);
 
 
                 let violations = [];
@@ -556,14 +552,17 @@ async function getUserFromDB(username) {
     console.log(`requesting user info from database for ${username}`);
   
     const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    console.log(db_url);
+
     return axios.get(db_url)
-    .then((res) => {
-        console.log(res.data[0]);
-        return res.data[0].userId;
-    }).catch((err) => {
-        return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
-    });
-  }
+        .then((res) => {
+            console.log("response: " + res);
+            return res;
+        }).catch((err) => {
+            console.log("err " + err);
+            return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
+        });
+}
 
 
 // TODO: TA - uncomment the code below and run it locally for easier debugging :-)
