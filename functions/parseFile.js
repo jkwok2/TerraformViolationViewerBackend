@@ -315,6 +315,9 @@ module.exports.parseFile = async (event, context, callback) => {
     const prID = event.prId; // TODO - TA: I couldnt find this but it seems required for the DB
     const repo = event.repoName;
     const prDate = event.prDate;
+    const userId = event.userId;
+    const email = event.email;
+    const name = event.name;
 
     // getFile(filePath, fileName, githubFullPath);
     console.log(`start reading file ${fileName}`);
@@ -429,8 +432,8 @@ module.exports.parseFile = async (event, context, callback) => {
                 // console.log("got user");
                 //console.log(await user.data[0]);
 
-                const user = await getUserFromDB(username);
-                console.log("got user info " + user);
+                // const user = await getUserFromDB(username);
+                // console.log("got user info " + user);
 
 
                 let violations = [];
@@ -438,16 +441,34 @@ module.exports.parseFile = async (event, context, callback) => {
                 for(const violationData of result.violations) {
                     // TODO: TA - need to put the file write back
 
+                    let prCreated = new Date(prDate);
+                    prCreated = prCreated.toISOString();
+                    console.log("prCreated " + prCreated)
+
+                    let violationFound = new Date(violationData.dateFound);
+                    violationFound = violationFound.toISOString();
+
                     const dbData = {
-                        "userId": "105966689851359954303",
-                        "repoId": repo,
-                        "prId": "333333333",
-                        "filePath": "",
-                        "lineNumber": violationData.lineNumber,
-                        "ruleId": violationData.violationRuleId,
-                        "prTime": prDate,
-                        "dateFound": violationData.dateFound
+                        userId: userId,
+                        repoId: repo,
+                        prId: prID.toString(),
+                        filePath:  githubFullPath,
+                        lineNumber: violationData.lineNumber,
+                        ruleId: violationData.violationRuleId,
+                        prTime: prCreated,
+                        dateFound: violationFound
                     };
+
+                    // const dbData = {
+                    //     "userId": '"' + userId + '"',
+                    //     "repoId": '"' + repo + '"',
+                    //     "prId": '"' + prID.toString() + '"',
+                    //     "filePath": '"' + githubFullPath + '"',
+                    //     "lineNumber": violationData.lineNumber,
+                    //     "ruleId": violationData.violationRuleId,
+                    //     "prTime": '"' + prCreated+ '"',
+                    //     "dateFound": '"' + violationFound+ '"'
+                    // };
 
                     violations.push(dbData);
 
@@ -461,23 +482,43 @@ module.exports.parseFile = async (event, context, callback) => {
 // "ruleId": 1,
 // "prTime": "2020-08-24 13:45:23",
 // "dateFound": "2020-08-24"
-// }]
+// }
 
-                console.log(violations);
-                const res = await sendViolationsToDB(violations);
+                console.log(JSON.stringify(violations));
+
+                const test = [
+                    {
+                        "userId": "105966689851359954303",
+                        "repoId": "testtesttest",
+                        "prId": "788555280",
+                        "filePath": "yutian-test.tf",
+                        "lineNumber": -2,
+                        "ruleId": 5,
+                        "prTime": "2021-11-28T22:53:36.000Z",
+                        "dateFound": "2021-11-28T22:53:37.373Z"
+                    }
+                ];
+
+                const res = await sendViolationsToDB(test);
                 console.log(res);
 
                 console.log("done?")
 
-                // TODO: TA - check how to call the code below?
-                // let emailPayload = {
-                //     name: username,           // name of recipient
-                //     statVal: statVal,        // pass/fail/error
-                //     errCount: errCount,       // number of violations
-                //     repoName: repo        // name of pr repo
-                // }
-                //
-                // invokeLambda(emailLambdaName, emailPayload, 'Event');
+                let statVal = "success";
+                if (violations.length > 0) {
+                    statVal = "fail";
+                }
+
+                //TODO: TA - check how to call the code below?
+                let emailPayload = {
+                    name: name,           // name of recipient
+                    email: email,
+                    statVal: statVal,        // pass/fail/error
+                    errCount: violations.length,       // number of violations
+                    repoName: repo        // name of pr repo
+                }
+                
+                invokeLambda(emailLambdaName, emailPayload, 'Event');
 
                 const response = {
                     statusCode: 200,
@@ -539,30 +580,11 @@ const sendViolationsToDB = async (violation) => {
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
     return axios.post(url, violation)
         .then((res) => {
-            console.log(res.data);
-            return res.data;
+            return res;
     }).catch((err) => {
         console.log(err);
     });
 };
-
-// TODO: I don't know what is the username, I tried both my github ID and email, but I got undefined
-async function getUserFromDB(username) {
-
-    console.log(`requesting user info from database for ${username}`);
-  
-    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
-    console.log(db_url);
-
-    return axios.get(db_url)
-        .then((res) => {
-            console.log("response: " + res);
-            return res;
-        }).catch((err) => {
-            console.log("err " + err);
-            return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
-        });
-}
 
 
 // TODO: TA - uncomment the code below and run it locally for easier debugging :-)

@@ -19,13 +19,17 @@ violationsAPI.post('/violations', async (req, res) => {
   const con = initializeConnection();
   const data = req.body;
 
+  console.log("req: " + req);
+  console.log(req.body);
+
   try {
     await Promise.all(
       data.map(async (violation) => {
         const result = await con.query(
           `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`
         );
-        console.log({ result });
+        //console.log({ result });
+        console.log("inserted violation");
       })
     );
     con.end();

@@ -95,7 +95,10 @@ module.exports.webhook = async (event, context, callback) => {
                                                             efsFilePath: efsPath + "/" + f.name, 
                                                             githubFullPath: f.path, 
                                                             username: pullRequest.username,
-                                                            prId: pullRequest.pullRequestId, 
+                                                            name: user.givenName,
+                                                            userId: user.userId,
+                                                            email: user.email,
+                                                            prId: pullRequest.id, 
                                                             repoName: pullRequest.repo, 
                                                             prDate: pullRequest.timestamp}));
 
