@@ -70,45 +70,68 @@ rulesAPI.post('/addRule', upload.any(), async function (req, res) {
   console.log(req);
 
   const con = initializeConnection();
-
-  // TODO: TA: technically, your front-end should always upload  a single file
-  for (let data of req.files) {
-      console.log(req.files)
-      let fileName = data.originalname;
-      console.log(fileName);
-      let encoding = data.encoding;
-      console.log(encoding)
-      let type = data.mimetype;
-      console.log(type)
-      let contentStr = data.buffer.toString('utf8');
-      console.log(contentStr)
-      let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-      // TODO: TA you need to have some try catch and check if the yamlData has the following fields:
-      // awsresource
-      // severity
-      // category
-      // etc.
-      // If these fields are not available, then you should return a BAD REQUEST 400
-      console.log('parsing YAML');
-      let yamlData = YAML.parse(contentStr);
-      let category = yamlData.category
-      if (category === undefined) {
+  try {
+    await Promise.all(
+      req.files.map(async (file) => {
+        let contentStr = file.buffer.toString('utf8');
+        console.log(contentStr)
+        let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        console.log('parsing YAML');
+        let yamlData = YAML.parse(contentStr);
+        let category = yamlData.category
+        if (category === undefined) {
           category = 'Not Detected'
-      }
-      try {
-          // con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategoryA, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${yamlData.category}', 'active', '${dateTime}',' '${contentStr}')`,
-          await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`
-          );
-          con.end();
-          return res.status(200).send('success! file uploaded!');
-      } catch (err) {
-          console.log('there is an error')
-          console.log({ err });
-          con.end();
-          return res.status(500).send(err);
-      }
-  }
+        }
+        await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`)
+      })
+    )
+    con.end()
+    return res.status(200).send('success! file uploaded!');
+  } catch (err) {
+    console.log('there is an error')
+    console.log({ err });
+    con.end();
+    return res.status(500).send(err);
+}
+  // }
+  // // TODO: TA: technically, your front-end should always upload  a single file
+  // // for (let data of req.files) {
+  // //   console.log(req.files)
+  // //   let fileName = data.originalname;
+  // //   console.log(fileName);
+  // //   let encoding = data.encoding;
+  // //   console.log(encoding)
+  // //   let type = data.mimetype;
+  // //   console.log(type)
+  // //   let contentStr = data.buffer.toString('utf8');
+  // //   console.log(contentStr)
+  // //   let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  //   // TODO: TA you need to have some try catch and check if the yamlData has the following fields:
+  //   // awsresource
+  //   // severity
+  //   // category
+  //   // etc.
+  //   // If these fields are not available, then you should return a BAD REQUEST 400
+  //   console.log('parsing YAML');
+  //   let yamlData = YAML.parse(contentStr);
+  //   let category = yamlData.category
+  //   if (category === undefined) {
+  //     category = 'Not Detected'
+  //   }
+  //   try {
+  //     // con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategoryA, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${yamlData.category}', 'active', '${dateTime}',' '${contentStr}')`,
+  //     await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`
+  //     );
+  //     con.end();
+  //     return res.status(200).send('success! file uploaded!');
+  //   } catch (err) {
+  //     console.log('there is an error')
+  //     console.log({ err });
+  //     con.end();
+  //     return res.status(500).send(err);
+  //   }
+  // }
 })
 
 module.exports.handler = sls(rulesAPI);
