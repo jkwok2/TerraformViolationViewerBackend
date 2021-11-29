@@ -425,17 +425,6 @@ module.exports.parseFile = async (event, context, callback) => {
                     violations: violationsFound,
                 };
 
-                // const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
-                // console.log("getting user?");
-                // //let user = await axios.get(db_url);
-                // console.log(await axios.get(db_url));
-                // console.log("got user");
-                //console.log(await user.data[0]);
-
-                // const user = await getUserFromDB(username);
-                // console.log("got user info " + user);
-
-
                 let violations = [];
 
                 for(const violationData of result.violations) {
@@ -449,7 +438,7 @@ module.exports.parseFile = async (event, context, callback) => {
 
                     const dbData = {
                         userId: userId,
-                        repoId: "aaaa",
+                        repoId: repo,
                         prId: prID.toString(),
                         filePath:  githubFullPath,
                         lineNumber: violationData.lineNumber,
@@ -489,7 +478,15 @@ module.exports.parseFile = async (event, context, callback) => {
 
                 const jsonViolations = JSON.stringify(violations);
                 console.log(jsonViolations);
-                const res = await sendViolationsToDB(violations);
+
+                if (violations.length > 0) {
+                    const res = await sendViolationsToDB(violations);
+                    console.log(res);
+                } else {
+                    console.log("no violations found");
+                }
+
+
 
 
                 // const violation = violations[0];
