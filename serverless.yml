@@ -78,7 +78,7 @@ functions:
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
-    timeout: 20
+    timeout: 100
     maximumRetryAttempts: 0
   monitor:
     handler: functions/monitor.monitor

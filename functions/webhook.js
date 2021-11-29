@@ -54,6 +54,11 @@ module.exports.webhook = async (event, context, callback) => {
 
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
     const files = await getChangedFilesContent(fileUrls);
+
+
+    const user = await getUserFromDB(pullRequest.username);
+    console.log("data " + JSON.stringify(user));
+
     // console.log(files);
     // call parsing lambda on each file in files
 
@@ -85,16 +90,15 @@ module.exports.webhook = async (event, context, callback) => {
                                                             dir: efsPath, 
                                                             pullRequestId: pullRequest.id}));
 
-                                                            const username = event.username;
-                                                            const repo = event.repoName;
-                                                            const prDate = event.prDate;
-
     files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, 
                                                             dir: efsPath,
                                                             efsFilePath: efsPath + "/" + f.name, 
                                                             githubFullPath: f.path, 
                                                             username: pullRequest.username,
-                                                            prId: pullRequest.pullRequestId, 
+                                                            name: user.givenName,
+                                                            userId: user.userId,
+                                                            email: user.email,
+                                                            prId: pullRequest.id, 
                                                             repoName: pullRequest.repo, 
                                                             prDate: pullRequest.timestamp}));
 
@@ -118,6 +122,22 @@ module.exports.webhook = async (event, context, callback) => {
 
     return callback(null, response);
 };
+
+async function getUserFromDB(username) {
+
+    console.log(`requesting user info from database for ${username}`);
+  
+    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    console.log(db_url);
+
+    return axios.get(db_url)
+        .then((res) => {
+            return res.data;
+        }).catch((err) => {
+            console.log("err " + err);
+            return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
+        });
+}
 
 /*
 Returns list of { name: String, path: String, content: base64 }
