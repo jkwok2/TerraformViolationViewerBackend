@@ -323,6 +323,9 @@ module.exports.parseFile = async (event, context, callback) => {
     console.log(`start reading file ${fileName}`);
     console.log(`start reading file ${filePath}`);
 
+    //select 1 from `database-1`.Violations v;
+
+
     // hacky way to get around race condition if file doesn't exist in EFS yet
     var fileNotFound = true;
     var terraformFile;
@@ -349,8 +352,6 @@ module.exports.parseFile = async (event, context, callback) => {
         statusCode: 200,
         body: `Parsing for ${file.githubFullPath} is complete`
     }
-
-    //const processThreads = [];
 
     try {
         const parsedTerraformFile = hcltojson(terraformFile);
@@ -451,31 +452,6 @@ module.exports.parseFile = async (event, context, callback) => {
 
                 }
 
-//                 [{"userId":"105966689851359954303",
-// "repoId":"RepoTest8",
-// "prId": "312344444",
-// "filePath": "./testfilepath",
-// "lineNumber": "123",
-// "ruleId": 1,
-// "prTime": "2020-08-24 13:45:23",
-// "dateFound": "2020-08-24"
-// }
-
-                //console.log(JSON.stringify(violations));
-
-                // const test = [
-                //     {
-                //         "userId": "105966689851359954303",
-                //         "repoId": "testtesttest",
-                //         "prId": "788555280",
-                //         "filePath": "yutian-test.tf",
-                //         "lineNumber": -2,
-                //         "ruleId": 5,
-                //         "prTime": "2021-11-28T22:53:36.000Z",
-                //         "dateFound": "2021-11-28T22:53:37.373Z"
-                //     }
-                // ];
-
                 const jsonViolations = JSON.stringify(violations);
                 console.log(jsonViolations);
 
@@ -485,28 +461,6 @@ module.exports.parseFile = async (event, context, callback) => {
                 } else {
                     console.log("no violations found");
                 }
-
-
-
-
-                // const violation = violations[0];
-                // console.log(violations[0]);
-                // console.log(violations[0]);
-
-                // const con = initializeConnection();
-                // //const data = req.body;
-                // console.log(`Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`)
-
-                // const resultDB = await con.query(
-                //     `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`
-                // );
-                // //console.log({ result });
-                // console.log("inserted violation");
-                // console.log(resultDB);
-                // con.end();
-                
-                
-                //console.log("after sendto DB " + res);
 
                 console.log("done?")
 
@@ -560,8 +514,6 @@ module.exports.parseFile = async (event, context, callback) => {
 async function getRules(con, queryString)
 {
 
-
-
     return new Promise(function(resolve, reject) {
 
         let rulez = [];
@@ -600,22 +552,6 @@ const sendViolationsToDB = async (violations) => {
     });
 };
 
-// const sendViolationsToDB = async (violation) => {
-
-//     console.log("sending a violation to db");
-//     // console.log(violation);
-//     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
-//     return axios.post(url, violation)
-//         .then((res) => {
-//             console.log("res: ");
-//             console.log(res);
-//             return res;
-//     }).catch((err) => {
-//         console.log(err);
-//         return err;
-//     });
-// };
-
 
 // TODO: TA - uncomment the code below and run it locally for easier debugging :-)
 // event = {
@@ -630,3 +566,6 @@ const sendViolationsToDB = async (violations) => {
 // }
 //
 // parseFile(event, undefined, undefined);
+
+// remove module.exports in front of parseFile
+// change TerraformFile = Buffer(.,m) to terraformFile = tempFile that points to 
