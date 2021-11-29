@@ -114,7 +114,7 @@ module.exports.emailSender = async function (event) {
   console.log("statVal: " + statVal);
   console.log("errCount: " + errCount);
   console.log("repoName: " + repoName);
-  console.log("repoName: " + address);
+  console.log("address: " + address);
 
   let temp;
   let tempData;
@@ -138,10 +138,10 @@ module.exports.emailSender = async function (event) {
 
 
   //address = await getGithubUserEmail(name);
-  console.log("about to get email");
-  address = await getEmailFromDB(name);
-  console.log("name: " + name);
-  console.log("address: " + address);
+  // console.log("about to get email");
+  // address = await getEmailFromDB(name);
+  // console.log("name: " + name);
+  // console.log("address: " + address);
 
   let params = {
     Source: "Group 4 <cpsc319fall2021@gmail.com>",

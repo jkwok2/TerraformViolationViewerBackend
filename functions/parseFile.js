@@ -443,14 +443,13 @@ module.exports.parseFile = async (event, context, callback) => {
 
                     let prCreated = new Date(prDate);
                     prCreated = prCreated.toISOString();
-                    console.log("prCreated " + prCreated)
 
                     let violationFound = new Date(violationData.dateFound);
                     violationFound = violationFound.toISOString();
 
                     const dbData = {
                         userId: userId,
-                        repoId: "askdjf;adkjf",
+                        repoId: "aaaa",
                         prId: prID.toString(),
                         filePath:  githubFullPath,
                         lineNumber: violationData.lineNumber,
@@ -473,7 +472,7 @@ module.exports.parseFile = async (event, context, callback) => {
 // "dateFound": "2020-08-24"
 // }
 
-                console.log(JSON.stringify(violations));
+                //console.log(JSON.stringify(violations));
 
                 // const test = [
                 //     {
@@ -488,8 +487,29 @@ module.exports.parseFile = async (event, context, callback) => {
                 //     }
                 // ];
 
+                const jsonViolations = JSON.stringify(violations);
+                console.log(jsonViolations);
                 const res = await sendViolationsToDB(violations);
-                console.log("after sendto DB " + res);
+
+
+                // const violation = violations[0];
+                // console.log(violations[0]);
+                // console.log(violations[0]);
+
+                // const con = initializeConnection();
+                // //const data = req.body;
+                // console.log(`Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`)
+
+                // const resultDB = await con.query(
+                //     `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`
+                // );
+                // //console.log({ result });
+                // console.log("inserted violation");
+                // console.log(resultDB);
+                // con.end();
+                
+                
+                //console.log("after sendto DB " + res);
 
                 console.log("done?")
 
@@ -501,7 +521,7 @@ module.exports.parseFile = async (event, context, callback) => {
                 //TODO: TA - check how to call the code below?
                 let emailPayload = {
                     name: name,           // name of recipient
-                    email: email,
+                    address: email,
                     statVal: statVal,        // pass/fail/error
                     errCount: violations.length,       // number of violations
                     repoName: repo        // name of pr repo
@@ -562,12 +582,17 @@ async function getRules(con, queryString)
     });
 }
 
-const sendViolationsToDB = async (violation) => {
+const sendViolationsToDB = async (violations) => {
+
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+      };
 
     console.log("sending a violation to db");
-    // console.log(violation);
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
-    return axios.post(url, {body: JSON.stringify(violation)})
+    return axios.post(url, {body: {violations}}, options)
         .then((res) => {
             console.log("res: ");
             console.log(res);
