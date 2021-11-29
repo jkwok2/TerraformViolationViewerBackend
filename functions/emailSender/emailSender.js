@@ -93,7 +93,7 @@ module.exports.emailSender = async function (event) {
   let address
   let repoName
 
-  if (event.name && event.statVal && event.errCount && event.repoName) {
+  if (event.name && event.statVal && event.errCount && event.repoName && event.address) {
     name = event.name;
     statVal = event.statVal;
     errCount = event.errCount;

@@ -17,14 +17,13 @@ violationsAPI.use((req, res, next) => {
 
 violationsAPI.post('/violations', async (req, res) => {
   const con = initializeConnection();
-  const data = req.body;
-
+  //const data = req.body;
   console.log("req: " + req);
-  console.log(req.body);
+  console.log(req.body.body);
 
   try {
     await Promise.all(
-      data.map(async (violation) => {
+      req.body.body.map(async (violation) => {
         const result = await con.query(
           `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`
         );
@@ -32,9 +31,12 @@ violationsAPI.post('/violations', async (req, res) => {
         console.log("inserted violation");
       })
     );
+    console.log("before end");
     con.end();
+    console.log("after end");
     return res.status(200).send(data);
   } catch (err) {
+    console.log("error");
     console.log({ err });
     con.end();
     return res.status(500).send(err);

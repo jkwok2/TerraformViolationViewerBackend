@@ -6,7 +6,7 @@ const initializeConnection = require('./routes/common');
 const YAML = require('yaml')
 const axios = require('axios')
 
-// const invokeLambda = require('functions/utilities/invokeLambda.js');
+const invokeLambda = require('functions/utilities/invokeLambda.js');
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
 
@@ -450,7 +450,7 @@ module.exports.parseFile = async (event, context, callback) => {
 
                     const dbData = {
                         userId: userId,
-                        repoId: repo,
+                        repoId: "askdjf;adkjf",
                         prId: prID.toString(),
                         filePath:  githubFullPath,
                         lineNumber: violationData.lineNumber,
@@ -458,17 +458,6 @@ module.exports.parseFile = async (event, context, callback) => {
                         prTime: prCreated,
                         dateFound: violationFound
                     };
-
-                    // const dbData = {
-                    //     "userId": '"' + userId + '"',
-                    //     "repoId": '"' + repo + '"',
-                    //     "prId": '"' + prID.toString() + '"',
-                    //     "filePath": '"' + githubFullPath + '"',
-                    //     "lineNumber": violationData.lineNumber,
-                    //     "ruleId": violationData.violationRuleId,
-                    //     "prTime": '"' + prCreated+ '"',
-                    //     "dateFound": '"' + violationFound+ '"'
-                    // };
 
                     violations.push(dbData);
 
@@ -486,21 +475,21 @@ module.exports.parseFile = async (event, context, callback) => {
 
                 console.log(JSON.stringify(violations));
 
-                const test = [
-                    {
-                        "userId": "105966689851359954303",
-                        "repoId": "testtesttest",
-                        "prId": "788555280",
-                        "filePath": "yutian-test.tf",
-                        "lineNumber": -2,
-                        "ruleId": 5,
-                        "prTime": "2021-11-28T22:53:36.000Z",
-                        "dateFound": "2021-11-28T22:53:37.373Z"
-                    }
-                ];
+                // const test = [
+                //     {
+                //         "userId": "105966689851359954303",
+                //         "repoId": "testtesttest",
+                //         "prId": "788555280",
+                //         "filePath": "yutian-test.tf",
+                //         "lineNumber": -2,
+                //         "ruleId": 5,
+                //         "prTime": "2021-11-28T22:53:36.000Z",
+                //         "dateFound": "2021-11-28T22:53:37.373Z"
+                //     }
+                // ];
 
-                const res = await sendViolationsToDB(test);
-                console.log(res);
+                const res = await sendViolationsToDB(violations);
+                console.log("after sendto DB " + res);
 
                 console.log("done?")
 
@@ -578,13 +567,32 @@ const sendViolationsToDB = async (violation) => {
     console.log("sending a violation to db");
     // console.log(violation);
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
-    return axios.post(url, violation)
+    return axios.post(url, {body: JSON.stringify(violation)})
         .then((res) => {
+            console.log("res: ");
+            console.log(res);
             return res;
     }).catch((err) => {
         console.log(err);
+        return err;
     });
 };
+
+// const sendViolationsToDB = async (violation) => {
+
+//     console.log("sending a violation to db");
+//     // console.log(violation);
+//     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
+//     return axios.post(url, violation)
+//         .then((res) => {
+//             console.log("res: ");
+//             console.log(res);
+//             return res;
+//     }).catch((err) => {
+//         console.log(err);
+//         return err;
+//     });
+// };
 
 
 // TODO: TA - uncomment the code below and run it locally for easier debugging :-)
