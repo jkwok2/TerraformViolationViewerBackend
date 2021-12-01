@@ -1,20 +1,19 @@
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-const aws = require("aws-sdk");
-const axios = require("axios");
+const aws = require('aws-sdk');
+const axios = require('axios');
 //const usersAPI = require('functions/routes/users.js');
 
-const ses = new aws.SES({ region: "us-east-1" });
+const ses = new aws.SES({ region: 'us-east-1' });
 
 module.exports.emailSender = async function (event) {
-
-  console.log("start of emailSEnder");
-  let name
-  let statVal
-  let errCount
-  let address
-  let repoName
+  console.log('start of emailSEnder');
+  let name;
+  let statVal;
+  let errCount;
+  let address;
+  let repoName;
 
   console.log(event);
 
@@ -24,43 +23,58 @@ module.exports.emailSender = async function (event) {
     errCount = event.errCount;
     repoName = event.repoName;
     address = event.address;
-    console.log("got stuff from monitor");
+    console.log('got stuff from monitor');
   } else {
-    name = "Kevin"
+    name = 'Kevin';
     statVal = 'pass';
     errCount = '420';
     address = 'megthibodeau@gmail.com';
-    repoName = "myRepo";
-    console.log("missing stuff from monitor");
+    repoName = 'myRepo';
+    console.log('missing stuff from monitor');
   }
 
-  console.log("email sender lambda");
-  console.log("name: " + name);
-  console.log("statVal: " + statVal);
-  console.log("errCount: " + errCount);
-  console.log("repoName: " + repoName);
-  console.log("address: " + address);
+  console.log('email sender lambda');
+  console.log('name: ' + name);
+  console.log('statVal: ' + statVal);
+  console.log('errCount: ' + errCount);
+  console.log('repoName: ' + repoName);
+  console.log('address: ' + address);
 
   let temp;
   let tempData;
 
   //tempData = { "name":"Kevin", "repoName":"someRepo", "errCount":"420"}
 
-  switch (statVal){
-    case "pass":
-      temp = "scannedTemplate";
-      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat("no").concat("\" }");
+  switch (statVal) {
+    case 'pass':
+      temp = 'scannedTemplate';
+      tempData = '{ "name":"'
+        .concat(name)
+        .concat('", "repoName":"')
+        .concat(repoName)
+        .concat('", "errCount":"')
+        .concat('no')
+        .concat('" }');
       break;
-    case "fail":
-      temp = "scannedTemplate";
-      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat(errCount).concat("\" }");
+    case 'fail':
+      temp = 'scannedTemplate';
+      tempData = '{ "name":"'
+        .concat(name)
+        .concat('", "repoName":"')
+        .concat(repoName)
+        .concat('", "errCount":"')
+        .concat(errCount)
+        .concat('" }');
       break;
-    case "error":
-      temp = "errorTemplate";
-      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\" }");
+    case 'error':
+      temp = 'errorTemplate';
+      tempData = '{ "name":"'
+        .concat(name)
+        .concat('", "repoName":"')
+        .concat(repoName)
+        .concat('" }');
       break;
-  };
-
+  }
 
   //address = await getGithubUserEmail(name);
   // console.log("about to get email");
@@ -69,26 +83,25 @@ module.exports.emailSender = async function (event) {
   // console.log("address: " + address);
 
   let params = {
-    Source: "Group 4 <cpsc319fall2021@gmail.com>",
+    Source: 'Group 4 <cpsc319fall2021@gmail.com>',
     Template: temp,
     Destination: {
-      ToAddresses: [address]
+      ToAddresses: [address],
     },
-    TemplateData: tempData
+    TemplateData: tempData,
   };
-  console.log("sending email..");
-  console.log("address: " + address);
-  return ses.sendTemplatedEmail(params).promise()
+  console.log('sending email..');
+  console.log('address: ' + address);
+  return ses.sendTemplatedEmail(params).promise();
 };
 
 async function getEmailFromDB(username) {
-
   console.log(`requesting email from database for ${username}`);
 
-  const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+  const db_url = `https://fc8rbf4rnb.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
   return axios.get(db_url).then((res) => {
-      console.log(res.data[0]);
-      return res.data[0].email;
+    console.log(res.data[0]);
+    return res.data[0].email;
   });
 }
 

@@ -58,6 +58,13 @@ insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTi
 insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105989777376658273094', 'R125', '31236', './testfilepath', 123, 3, '2021-06-13 14:34:56', '2021-06-13 14:34:56');
 insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105989777376658273094', 'R124', '31237', './testfilepath', 123, 6, '2021-02-13 12:42:56', '2021-02-13 12:42:56');
 insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105989777376658273094', 'R126', '31237', './testfilepath', 123, 5, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105989777376658273094', 'R126', '31237', './testfilepath', 123, 5, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105989777376658273094', 'R126', '31237', './testfilepath', 123, 5, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105989777376658273094', 'R126', '31237', './testfilepath', 123, 5, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105966689851359954303', 'R126', '31237', './testfilepath', 123, 5, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105966689851359954303', 'R126', '31237', './testfilepath', 123, 4, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105966689851359954303', 'R126', '31237', './testfilepath', 123, 4, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
+insert into Violations (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('105966689851359954303', 'R126', '31237', './testfilepath', 123, 4, '2021-04-13 12:21:56', '2021-04-13 12:21:56');
 
 INSERT INTO Rules (fileId,awsresource,severity,violationCategory,status,description, dateAdded, content) VALUES
 ('bc_aws_s3_20.yaml','aws_s3_bucket_public_access_block','MEDIUM','STORAGE','active',NULL,'2021-11-13 12:21:56','resource: aws_s3_bucket_public_access_block
