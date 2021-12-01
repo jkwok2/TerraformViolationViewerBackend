@@ -81,6 +81,12 @@ functions:
       arn: !GetAtt AccessPointResource.Arn
     timeout: 100
     maximumRetryAttempts: 0
+  writeFile:
+    handler: functions/writeFile.writeFile
+    role: lambdaEFSrole
+    fileSystemConfig:
+      localMountPath: ${self:custom.efsMountPath}
+      arn: !GetAtt AccessPointResource.Arn
   users:
     handler: functions/routes/users.handler
     events:
