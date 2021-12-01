@@ -113,6 +113,15 @@ functions:
       - http:
           path: /rules/{proxy+}
           method: ANY
+  results:
+    handler: functions/routes/results.handler
+    events:
+      - http:
+          path: /results
+          method: ANY
+      - http:
+          path: /results/{proxy+}
+          method: ANY
   emailSender:
     handler: functions/emailSender/emailSender.emailSender
     maximumRetryAttempts: 1
