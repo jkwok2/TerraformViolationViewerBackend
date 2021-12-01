@@ -83,7 +83,6 @@ functions:
     maximumRetryAttempts: 0
   writeFile:
     handler: functions/writeFile.writeFile
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
