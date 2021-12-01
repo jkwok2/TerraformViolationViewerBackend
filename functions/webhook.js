@@ -78,6 +78,7 @@ module.exports.webhook = async (event, context, callback) => {
         if (results.length == files.length) {
             break;
         }
+        tries++;
     }
 
     console.log(`results: ${results}`)
@@ -118,7 +119,7 @@ async function getResultsFromDB(updateTime) {
 
     console.log(`requesting results from database for ${updateTime}`);
 
-    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/results/?prUpdateTime=${updateTime}`;
     console.log(db_url);
 
     return axios.get(db_url)

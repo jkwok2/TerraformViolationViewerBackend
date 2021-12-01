@@ -307,10 +307,11 @@ module.exports.parseFile = async (event, context, callback) => {
 
     const fileName = event.fileName;
     const filePath = event.path;
-
+    const userId = event.userId;
     const prID = event.prId; // TODO - TA: I couldnt find this but it seems required for the DB
     const repo = event.repoName;
     const prDate = event.prDate;
+
 
     // getFile(filePath, fileName, githubFullPath);
     console.log(`start reading file ${fileName}`);
@@ -325,7 +326,7 @@ module.exports.parseFile = async (event, context, callback) => {
 
     const responseComplete = {
         statusCode: 200,
-        body: `Parsing for ${file.githubFullPath} is complete`
+        body: `Parsing for ${file.path} is complete`
     }
 
     try {
@@ -416,7 +417,7 @@ module.exports.parseFile = async (event, context, callback) => {
                         userId: userId,
                         repoId: repo,
                         prId: prID.toString(),
-                        filePath:  githubFullPath,
+                        filePath:  file.path,
                         lineNumber: violationData.lineNumber,
                         ruleId: violationData.violationRuleId,
                         prTime: prCreated,
@@ -430,14 +431,27 @@ module.exports.parseFile = async (event, context, callback) => {
                 const jsonViolations = JSON.stringify(violations);
                 console.log(jsonViolations);
 
+                let vResult;
                 if (violations.length > 0) {
-                    const vResult = await sendViolationsToDB(violations);
+                    // const vResult = await sendViolationsToDB(violations);
                     console.log(vResult);
                 } else {
                     console.log("no violations found");
                 }
 
-                const fileResult = await sendResultToDB(violations);
+                console.log("prDate: " + prDate);
+
+                const numViolations = violations.length;
+                // status: 0 = success, 1 = violations found, 2 = error
+                const postResult = JSON.stringify({
+                    results: [{
+                        prUpdateTime: prDate,
+                        numViolations: numViolations,
+                        status: 1
+                    }]
+                });
+
+                const fileResult = await sendResultToDB(postResult, fileName);
                 console.log(`fileResult: ${fileResult}`)
 
                 console.log("done?")
@@ -475,7 +489,7 @@ const sendViolationsToDB = async (violations) => {
         }
       };
 
-    console.log("sending a violation to db");
+    console.log(`sending violations to db`);
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
     return axios.post(url, {body: {violations}}, options)
         .then((res) => {
@@ -497,8 +511,8 @@ const sendResultToDB = async (results, filename) => {
     };
 
     console.log(`sending result for ${filename} to db`);
-    const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
-    return axios.post(url, {body: {result}}, options)
+    const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/results`;
+    return axios.post(url, {body: {results}}, options)
         .then((res) => {
             console.log("res: ");
             console.log(res);
