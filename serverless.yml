@@ -46,17 +46,24 @@ provider:
   iamRoleStatements:
     - Effect: 'Allow'
       Action:
+        - lambda:InvokeFunction
+        - ses:SendTemplatedEmail
         - ec2:CreateNetworkInterface
         - ec2:DescribeNetworkInterfaces
+        - ec2:DetachNetworkInterface
         - ec2:DeleteNetworkInterface
-        - ses:SendTemplatedEmail
-        - lambda:InvokeFunction
+        - elasticfilesystem:ClientMount
+        - elasticfilesystem:ClientRootAccess
+        - elasticfilesystem:ClientWrite
+        - elasticfilesystem:DescribeMountTargets
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
       Resource: '*'
 
 functions:
   webhook:
     handler: functions/webhook.webhook
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
@@ -67,14 +74,12 @@ functions:
           cors: true
   writeFile:
     handler: functions/writeFile.writeFile
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
     maximumRetryAttempts: 0
   parseFile:
     handler: functions/parseFile.parseFile
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn

@@ -14,9 +14,8 @@ var lambda = new aws.Lambda();
 const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 const monitorLambdaName = 'hsbc-backend-app-meg-dev-monitor';
 const parseFileLambdaName = 'hsbc-backend-app-meg-dev-parseFile';
+const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
 
-
-// Change to tr for terraform
 const fileType = '.tf';
 
 module.exports.webhook = async (event, context, callback) => {
@@ -43,82 +42,52 @@ module.exports.webhook = async (event, context, callback) => {
         'userid': body.pull_request.user.id,
         'repo': body.pull_request.head.repo.name,
         'repo_owner': body.pull_request.head.repo.owner.login,
-        //TODO use this 'timestamp': body.pull_request.updated_at
         'timestamp': Date.parse(body.pull_request.updated_at)
-        // 'changed_files_num': body.pull_request.changed_files
     }
 
     console.log("timestamp: " + pullRequest.timestamp);
     console.log("body.pull_request.id: " + pullRequest.id);
-    console.log("body.pull_request.user.id: " + body.pull_request.user.id);
+    console.log("body.pull_request.user.id: " + pullRequest.userid); //body.pull_request.user.id);
 
     const fileUrls = await getFileUrls(pullRequest.url + '/files');
     const files = await getChangedFilesContent(fileUrls);
-
-
     const user = await getUserFromDB(pullRequest.username);
-    console.log("data " + JSON.stringify(user));
-
-    // console.log(files);
-    // call parsing lambda on each file in files
-
-    // files.forEach(f => invokeWriteFileLambda(f.name, f.content, pullRequest.id, pullRequest.repo));
-
-    const efsPath = '/mnt/files/' + pullRequest.repo + pullRequest.timestamp;
-    // const path = dir + "/" + event.filename;
-    console.log("efsPath: " + efsPath);
-
-
-    var metadataPayload = {username: pullRequest.username, 
-                        timestamp: pullRequest.timestamp, 
-                        repo: pullRequest.repo, 
-                        path: efsPath, 
-                        originalPaths: []};
-
-    files.forEach(f => metadataPayload.originalPaths.push(f.name));
-
-
-    console.log(metadataPayload.originalPaths[0]);
-
-    // creates metadata file in dir for this PR
-    invokeLambda(writeFileLambdaName, {fileName: "metadata.json", 
-                                        content: metadataPayload, 
-                                        dir: efsPath });
-
-    files.forEach(f => invokeLambda(writeFileLambdaName, {fileName: f.name, 
-                                                            content: f.content, 
-                                                            dir: efsPath, 
-                                                            pullRequestId: pullRequest.id}));
+    console.log("user " + JSON.stringify(user));
 
     files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, 
-                                                            dir: efsPath,
-                                                            efsFilePath: efsPath + "/" + f.name, 
-                                                            githubFullPath: f.path, 
+                                                            content: f.content,
+                                                            path: f.path,
                                                             username: pullRequest.username,
-                                                            name: user.givenName,
                                                             userId: user.userId,
                                                             email: user.email,
                                                             prId: pullRequest.id, 
                                                             repoName: pullRequest.repo, 
                                                             prDate: pullRequest.timestamp}));
 
-    // const monitorPayload = { username: pullRequest.username, 
-    //                             userid: pullRequest.userid, 
-    //                             repoName: pullRequest.repo,
-    //                             dir: efsPath, 
-    //                             numFiles: files.length * 2 + 1}  // parseFile creates duplicate for each file, plus metadatafile
+    // check database for results
+    let tries = 0;
+    let results = 0;
+    while (tries < 10) {
+        results = getResultsFromDB(pullRequest.timestamp);
 
-    // var numFiles = files.length;
-    // var newNumFiles = numFiles * 2 + 1;
+        // checking if we have all the results
+        if (result.length == files.length) {
+            break;
+        }
+    }
 
-    // console.log("file.length: " +  numFiles);
-    // console.log("file.length * 2 + 1: " +  newNumFiles);
+    let numViolations = 0;
+    let statVal = "success";
 
-    // await new Promise(resolve => setTimeout(resolve, 2000));
+    let emailPayload = {
+        name: user.givenName,           // name of recipient
+        address: user.email,
+        statVal: statVal,        // pass/fail/error
+        errCount: numViolations,       // number of violations
+        repoName: pullRequest.repo        // name of pr repo
+    }
 
-    // invokeLambda(monitorLambdaName, monitorPayload);
-
-    // console.log(monitorPayload);
+    invokeLambda(emailLambdaName, emailPayload, 'Event');
 
     return callback(null, response);
 };
@@ -136,6 +105,22 @@ async function getUserFromDB(username) {
         }).catch((err) => {
             console.log("err " + err);
             return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
+        });
+}
+
+async function getResultsFromDB(updateTime) {
+
+    console.log(`requesting results from database for ${updateTime}`);
+
+    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    console.log(db_url);
+
+    return axios.get(db_url)
+        .then((res) => {
+            return res.data;
+        }).catch((err) => {
+            console.log("err " + err);
+            return err;
         });
 }
 

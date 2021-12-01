@@ -17,8 +17,7 @@ let violationsFound;
 let errorsEncountered;
 const file = {
     content: "",
-    efsFullPath: "",
-    githubFullPath: "",
+    path: "",
 };
 
 function mapRulesToYAMLContent(data) {
@@ -307,17 +306,11 @@ module.exports.parseFile = async (event, context, callback) => {
     errorsEncountered = [];
 
     const fileName = event.fileName;
-    const dir = event.dir;
-    const githubFullPath = event.githubFullPath;
-    const filePath = dir + "/" + fileName;
+    const filePath = event.path;
 
-    const username = event.username;
     const prID = event.prId; // TODO - TA: I couldnt find this but it seems required for the DB
     const repo = event.repoName;
     const prDate = event.prDate;
-    const userId = event.userId;
-    const email = event.email;
-    const name = event.name;
 
     // getFile(filePath, fileName, githubFullPath);
     console.log(`start reading file ${fileName}`);
@@ -325,27 +318,9 @@ module.exports.parseFile = async (event, context, callback) => {
 
     //select 1 from `database-1`.Violations v;
 
-
-    // hacky way to get around race condition if file doesn't exist in EFS yet
-    var fileNotFound = true;
-    var terraformFile;
-    //TODO: TA - add something as a number of tries, or get rid of the while. If you are using only sync functions, do you need the loop?
-    //TODO: TA - reason being is that this can fail silently. Like your lambda func might get stuck here
-    while (fileNotFound) {
-        if (fs.existsSync(filePath)) {
-            const tempFile = fs.readFileSync(filePath, {encoding: 'utf8'});
-            //console.log(tempFile);
-            //TODO: TA - this line is strange. You read it with one encoding, then use a different encoding for the buffer
-            terraformFile = Buffer.from(tempFile, 'base64').toString('ascii');
-            fileNotFound = false;
-            console.log("done reading file " + filePath);
-            //console.log(`Terraform file read: ${terraformFile}`);
-        }
-    }
-
+    const terraformFile = Buffer.from(event.content, 'base64').toString('ascii');
     file.content = terraformFile;
-    file.efsFullPath = filePath;
-    file.githubFullPath = githubFullPath;
+    file.path = event.path;
     Object.freeze(file);
 
     const responseComplete = {
@@ -456,37 +431,18 @@ module.exports.parseFile = async (event, context, callback) => {
                 console.log(jsonViolations);
 
                 if (violations.length > 0) {
-                    const res = await sendViolationsToDB(violations);
-                    console.log(res);
+                    const vResult = await sendViolationsToDB(violations);
+                    console.log(vResult);
                 } else {
                     console.log("no violations found");
                 }
 
+                const fileResult = await sendResultToDB(violations);
+                console.log(`fileResult: ${fileResult}`)
+
                 console.log("done?")
 
-                let statVal = "success";
-                if (violations.length > 0) {
-                    statVal = "fail";
-                }
-
-                //TODO: TA - check how to call the code below?
-                let emailPayload = {
-                    name: name,           // name of recipient
-                    address: email,
-                    statVal: statVal,        // pass/fail/error
-                    errCount: violations.length,       // number of violations
-                    repoName: repo        // name of pr repo
-                }
-                
-                invokeLambda(emailLambdaName, emailPayload, 'Event');
-
-                const response = {
-                    statusCode: 200,
-                    body: JSON.stringify({
-                        results: result,
-                    }),
-                };
-                return callback(null, response);
+                return callback(null, responseComplete);
             }).catch((err) => {
                 // TODO: TA - need to throw some error response with bad request here?
                 console.log(err);
@@ -511,26 +467,6 @@ module.exports.parseFile = async (event, context, callback) => {
     }
 };
 
-async function getRules(con, queryString)
-{
-
-    return new Promise(function(resolve, reject) {
-
-        let rulez = [];
-        con.query(queryString,
-            function (err, result) {
-                if (err) {
-                    console.log("error from db");
-                    throw err;
-                }
-
-                con.end();
-                resolve(result);
-
-            });
-    });
-}
-
 const sendViolationsToDB = async (violations) => {
 
     const options = {
@@ -550,6 +486,27 @@ const sendViolationsToDB = async (violations) => {
         console.log(err);
         return err;
     });
+};
+
+const sendResultToDB = async (results, filename) => {
+
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    };
+
+    console.log(`sending result for ${filename} to db`);
+    const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
+    return axios.post(url, {body: {result}}, options)
+        .then((res) => {
+            console.log("res: ");
+            console.log(res);
+            return res;
+        }).catch((err) => {
+            console.log(err);
+            return err;
+        });
 };
 
 
