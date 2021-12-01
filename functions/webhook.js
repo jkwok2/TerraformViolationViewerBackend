@@ -54,7 +54,8 @@ module.exports.webhook = async (event, context, callback) => {
     const user = await getUserFromDB(pullRequest.username);
     console.log("user " + JSON.stringify(user));
 
-    files.forEach(f => invokeLambda(parseFileLambdaName, {fileName: f.name, 
+    let promiseArray = [];
+    files.forEach(f => promiseArray.push(invokeLambda(parseFileLambdaName, {fileName: f.name,
                                                             content: f.content,
                                                             path: f.path,
                                                             username: pullRequest.username,
@@ -62,8 +63,11 @@ module.exports.webhook = async (event, context, callback) => {
                                                             email: user.email,
                                                             prId: pullRequest.id, 
                                                             repoName: pullRequest.repo, 
-                                                            prDate: pullRequest.timestamp}));
+                                                            prDate: pullRequest.timestamp})));
 
+
+    // wait for all parseFileLambdas to return
+    await Promise.all(promiseArray);
     // check database for results
     let tries = 0;
     let results = 0;
@@ -71,10 +75,12 @@ module.exports.webhook = async (event, context, callback) => {
         results = getResultsFromDB(pullRequest.timestamp);
 
         // checking if we have all the results
-        if (result.length == files.length) {
+        if (results.length == files.length) {
             break;
         }
     }
+
+    console.log(`results: ${results}`)
 
     let numViolations = 0;
     let statVal = "success";

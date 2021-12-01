@@ -12,21 +12,28 @@ var lambda = new aws.Lambda();
 */
 const invokeLambda = (lambdaName, payload) => {
 
-    var params = {
+    const params = {
         FunctionName: lambdaName, // Name of the function to be called
-        InvocationType: 'Event', // For synchronous calls
-        LogType: 'None', // Do not return log from invoked function 
+        InvocationType: 'RequestResponse', // For synchronous calls
+        LogType: 'None', // Do not return log from invoked function
         Payload : JSON.stringify(payload) // The payload sent to the function
     };
 
-    return lambda.invoke(params, function(err, data) {
-        if (err) {
-            console.log(`Error when invoking ${params.FunctionName}`);
-            throw err;
-        } else {
-            console.log(`${params.FunctionName} invoked`)
-        }
-      }).promise();
+    // return lambda.invoke(params, function(err, data) {
+    //     if (err) {
+    //         console.log(`Error when invoking ${params.FunctionName}`);
+    //         throw err;
+    //     }
+    //     console.log(`${params.FunctionName} invoked`)
+    //     if (data) {
+    //         console.log(`${params.FunctionName} invoked`)
+    //         console.log(data);
+    //         console.log(data.Payload);
+    //         return data.Payload;
+    //     }
+    //   }).promise();
+
+    return lambda.invoke(params).promise();
 };
 
 module.exports = invokeLambda;
