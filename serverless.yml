@@ -11,7 +11,8 @@
 #
 # Happy Coding!
 
-service: hsbc-backend-app-meg
+service: hsbc-backend-app
+
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -80,6 +81,12 @@ functions:
       arn: !GetAtt AccessPointResource.Arn
     timeout: 100
     maximumRetryAttempts: 0
+  monitor:
+    handler: functions/monitor.monitor
+    role: lambdaEFSrole
+    fileSystemConfig:
+      localMountPath: ${self:custom.efsMountPath}
+      arn: !GetAtt AccessPointResource.Arn
   users:
     handler: functions/routes/users.handler
     events:
