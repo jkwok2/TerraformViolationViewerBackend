@@ -21,8 +21,7 @@
   "scripts": {
     "test": "jest",
     "setUpTemplate": "aws ses create-template --cli-input-json file://scannedTemplateUpload.json && aws ses create-template --cli-input-json file://errorTemplatedUpload.json",
-    "testEmail": "aws ses send-templated-email --cli-input-json file://sendEmailManual.json",
-    "deployPackaged": "serverless deploy --package /.serverless"
+    "testEmail": "aws ses send-templated-email --cli-input-json file://sendEmailManual.json"
   },
   "repository": {
     "type": "git",
