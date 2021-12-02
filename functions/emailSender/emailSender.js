@@ -10,14 +10,14 @@ module.exports.emailSender = async function (event) {
   let name;
   let statVal;
   let numViolations;
-  let email;
+  let address;
   let repoName;
 
   if (event.email === null || event.email === 'undefined') {
     console.log("No email found")
     return;
   } else {
-    email = event.email;
+    address = event.email;
   }
 
   (event.name) ? name = event.name : ""; // if no name, leave blank
@@ -30,7 +30,7 @@ module.exports.emailSender = async function (event) {
   console.log("statVal: " + statVal);
   console.log("numViolations: " + numViolations);
   console.log("repoName: " + repoName);
-  console.log("email: " + email);
+  console.log("email: " + address);
 
   let temp;
   let tempData;
@@ -56,13 +56,13 @@ module.exports.emailSender = async function (event) {
     Source: process.env.SOURCE_ADDRESS,
     Template: temp,
     Destination: {
-      ToAddresses: [email]
+      ToAddresses: [address]
     },
     TemplateData: tempData
   };
   console.log(params);
-  console.log(`Sending email to ${email}`);
-  return ses.sendTemplatedEmail(params).promise()
+  console.log(`Sending email to ${address}`);
+  return await ses.sendTemplatedEmail(params).promise()
 };
 
 // const event = {

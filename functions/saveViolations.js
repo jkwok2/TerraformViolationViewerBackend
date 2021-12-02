@@ -1,9 +1,18 @@
-const connection = require('./routes/common');
+const connection = require('serverless-mysql')({
+    config: {
+        host: 'database-1.cphcofv6hw3s.us-east-1.rds.amazonaws.com',
+        database: 'database-1',
+        user: 'admin',
+        password: 'cpsc319aws!',
+    },
+});
 
 module.exports.saveViolations = async (event, context, callback) => {
     try {
         console.log('saving violation: ', event.violations);
+        context.callbackWaitsForEmptyEventLoop = false;
 
+        console.log(`${event}`);
         const violations = event.violations;
         const path = event.path;
 
@@ -30,8 +39,10 @@ module.exports.saveViolations = async (event, context, callback) => {
                 input: event,
             }),
         };
+        await connection.end();
         return callback(null, response);
     } catch (err) {
+        await connection.end();
         return callback(err, {
             statusCode: 401,
             headers: { 'Content-Type': 'text/plain' },

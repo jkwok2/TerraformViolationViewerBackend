@@ -10,6 +10,7 @@ aws.config.region = process.region;;
 
 const parseFileLambdaName = 'hsbc-backend-app-dev-parseFile';
 const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
+const saveViolationsLambdaName = 'hsbc-backend-app-dev-saveViolations';
 
 const fileType = '.tf';
 

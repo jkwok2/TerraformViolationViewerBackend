@@ -1,12 +1,20 @@
 var aws = require('aws-sdk');
 const hcltojson = require('hcl-to-json');
 const {InvalidTerraformFileError, LineNumberNotFoundError, GrepError} = require('./additionalViolationErrors');
-const connection = require('./routes/common');
 const YAML = require('yaml');
 
 const invokeLambda = require('functions/utilities/invokeLambda.js');
 const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
 const saveViolationsLambdaName = 'hsbc-backend-app-dev-saveViolations';
+
+const connection = require('serverless-mysql')({
+  config: {
+    host: 'database-1.cphcofv6hw3s.us-east-1.rds.amazonaws.com',
+    database: 'database-1',
+    user: 'admin',
+    password: 'cpsc319aws!',
+  },
+});
 
 aws.config.region = process.region;
 
@@ -370,16 +378,14 @@ module.exports.parseFile = async (event, context, callback) => {
               violations.push(dbData);
             }
 
-            const jsonViolations = JSON.stringify(violations);
-            console.log(jsonViolations);
-
             let statVal = 'success';
             if (violations.length > 0) {
               console.log(`${file.path}: ${violations.length} violations found`);
               invokeLambda(saveViolationsLambdaName, {
                 violations: violations,
                 filename: filename,
-                path: filePath
+                path: filePath,
+                dbConnection: connection
               });
               console.log(`${file.path}: violations sent to saveViolations lambda`);
               statVal = 'fail';
