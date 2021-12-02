@@ -353,7 +353,7 @@ module.exports.parseFile = async (event, context, callback) => {
               violations: violationsFound,
             };
 
-            console.log(`${file.path}: Result: ${result}`);
+            console.log(`${file.path}: Result: ${JSON.stringify(result)}`);
 
             let violations = [];
             let prCreated = new Date(prDate);

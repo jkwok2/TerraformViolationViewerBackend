@@ -11,8 +11,7 @@ module.exports.saveViolations = async (event, context, callback) => {
     try {
         console.log('saving violation: ', event.violations);
         context.callbackWaitsForEmptyEventLoop = false;
-
-        console.log(`${event}`);
+        
         const violations = event.violations;
         const path = event.path;
 
