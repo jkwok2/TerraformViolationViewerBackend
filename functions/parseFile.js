@@ -424,15 +424,15 @@ module.exports.parseFile = async (event, context, callback) => {
   violationsFound = [];
   errorsEncountered = [];
 
-  const fileName = event.fileName;
+  const filename = event.filename;
   const filePath = event.path;
   const userId = event.userId;
   const prID = event.prId; // TODO - TA: I couldnt find this but it seems required for the DB
   const repo = event.repoName;
   const prDate = event.prDate;
 
-  // getFile(filePath, fileName, githubFullPath);
-  console.log(`start reading file ${fileName}`);
+  // getFile(filePath, filename, githubFullPath);
+  console.log(`start reading file ${filename}`);
   console.log(`start reading file ${filePath}`);
 
   //select 1 from `database-1`.Violations v;
@@ -450,7 +450,7 @@ module.exports.parseFile = async (event, context, callback) => {
   try {
     const parsedTerraformFile = hcltojson(terraformFile);
     console.log(
-      `Terraform file ${fileName} parsed successfully as ${JSON.stringify(
+      `Terraform file ${filename} parsed successfully as ${JSON.stringify(
         parsedTerraformFile
       )}`
     );
@@ -542,12 +542,14 @@ module.exports.parseFile = async (event, context, callback) => {
 
         Promise.all(vThreads)
           .then(async (violationLst) => {
-            console.log('opsie daisy!');
+            console.log(`${file.path}: Scanning complete`);
 
             const result = {
               errors: errorsEncountered,
               violations: violationsFound,
             };
+
+            console.log(`${file.path}: Result: ${result}`);
 
             let violations = [];
             let prCreated = new Date(prDate);
@@ -576,57 +578,40 @@ module.exports.parseFile = async (event, context, callback) => {
             const jsonViolations = JSON.stringify(violations);
             console.log(jsonViolations);
 
-            let vResult;
+            let statVal = 'success';
             if (violations.length > 0) {
-              //await sendViolationsToDB(violations);
-              invokeLambda(saveViolationsLambdaName, {violations: violations});
-              console.log("violations sent to lambda, done")
+              console.log(`${file.path}: ${violations.length} violations found`);
+              invokeLambda(saveViolationsLambdaName, {violations: violations, filename: filename, path: filePath});
+              console.log(`${file.path}: violations sent to saveViolations lambda`);
+              statVal = 'fail';
             } else {
-              console.log('no violations found');
+              console.log(`${file.path}: no violations found.`);
             }
 
+            let emailPayload = {
+              name: event.username, // name of recipient
+              address: event.email,
+              statVal: statVal, // pass/fail/error
+              errCount: violations.length, // number of violations
+              repoName: repo, // name of pr repo
+            };
 
-            const numViolations = violations.length;
-            // status: 0 = success, 1 = violations found, 2 = error
-            const status = (numViolations > 0) ? 1 : 0;
+            invokeLambda(emailLambdaName, emailPayload);
 
-            const postResult = { prUpdateTime: prCreated,
-              numViolations: numViolations,
-              status: status };
-            const data = JSON.stringify(postResult);
-            const jsonResult = JSON.stringify(postResult);
-
-            const test = await connection.query(
-                `Insert into \`database-1\`.\`Results\` (prUpdateTime, numViolations, status) values ('${data.prUpdateTime}', '${data.numViolations}', '${data.status}')`
-            ).then((res) => {
-              console.log('then result: ', res);
-              return res;
-            });
-           console.log('inserted result: ', test);
-
-            // const fileResult = await sendResultToDB(jsonResult, fileName);
-            // console.log(`fileResult: ${fileResult}`)
-
-            await connection.end();
-            console.log('done?');
-
+            console.log(`${file.path}: Finished`);
           })
           .catch((err) => {
             // TODO: TA - need to throw some error response with bad request here?
-            console.log(err);
+            throw err;
           });
       })
       .catch((err) => {
         // TODO: TA - need to throw some error response with bad request here?
+        throw err;
       });
-    // const response = {
-    //     statusCode: 200,
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: result
-    // }
-  } catch (e) {
+  } catch (err) {
     //const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
-    console.log('error');
+    console.error(`${file.path}: ${err}`);
     addError('invalidTerraformFileError');
   } finally {
   }
@@ -678,7 +663,7 @@ const sendResultToDB = async (result, filename) => {
 
 // // TODO: TA - uncomment the code below and run it locally for easier debugging :-)
 // const event = {
-//     fileName: "local-test.tf",
+//     filename: "local-test.tf",
 //     content: 'cmVzb3VyY2UgImF3c19hdGhlbmFfd29ya2dyb3VwIiAidGVzdCIgewogY29u\n' +
 //         'ZmlndXJhdGlvbiB7CiAgIHJlc3VsdF9jb25maWd1cmF0aW9uIHsKICAgICBv\n' +
 //         'dXRwdXRfbG9jYXRpb24gPSAiczM6Ly9teXMzYnVja2V0IgogICAgfQogIH0K\n' +

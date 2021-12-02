@@ -17,7 +17,7 @@ const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
 const fileType = '.tf';
 
 module.exports.webhook = async (event, context, callback) => {
-  validateGithubWebhookResponse(event);
+  validateGithubWebhookResponse(event, callback);
 
   const response = {
     statusCode: 200,
@@ -54,7 +54,7 @@ module.exports.webhook = async (event, context, callback) => {
 
   files.forEach((f) =>
     invokeLambda(parseFileLambdaName, {
-        fileName: f.name,
+        filename: f.name,
         content: f.content,
         path: f.path,
         username: pullRequest.username,
@@ -67,38 +67,6 @@ module.exports.webhook = async (event, context, callback) => {
   );
 
   console.log("files sent to parseLambda");
-  // wait for all parseFileLambdas to return
-
-  // check database for results
-  // let tries = 0;
-  // let results = 0;
-  // const prUpdateTime = new Date(pullRequest.timestamp).toISOString();
-  // console.log("prUpdateTime: " + prUpdateTime);
-  // while (tries < 2) {
-  //   setInterval(function() {}, 1000);
-  //
-  //   results = getResultsFromDB(prUpdateTime);
-  //   // checking if we have all the results
-  //   if (results.length == files.length) {
-  //     break;
-  //   }
-  //   tries++;
-  // }
-  //
-  // console.log(`results: ${results}`);
-  //
-  // let numViolations = 0;
-  // let statVal = 'success';
-  //
-  // let emailPayload = {
-  //   name: user.givenName, // name of recipient
-  //   address: user.email,
-  //   statVal: statVal, // pass/fail/error
-  //   errCount: numViolations, // number of violations
-  //   repoName: pullRequest.repo, // name of pr repo
-  // };
-  //
-  // invokeLambda(emailLambdaName, emailPayload, 'Event');
 
   return callback(null, response);
 };
@@ -201,7 +169,7 @@ function getFileUrls(url) {
 }
 
 // code taken from https://github.com/serverless/examples/blob/master/aws-node-github-webhook-listener/handler.js
-function validateGithubWebhookResponse(event) {
+function validateGithubWebhookResponse(event, callback) {
   var errMsg;
   const token = process.env.GITHUB_WEBHOOK_SECRET;
   const headers = event.headers;

@@ -5,6 +5,7 @@ module.exports.saveViolations = async (event, context, callback) => {
         console.log('saving violation: ', event.violations);
 
         const violations = event.violations;
+        const path = event.path;
 
         await Promise.all(
             violations.map(async (violation) => {
@@ -14,16 +15,14 @@ module.exports.saveViolations = async (event, context, callback) => {
                     );
                     console.log('inserted violation: ', { result });
                 } catch (err) {
-                    console.log('error when inserting violation: ', { err });
+                    console.log(`${path}: error when inserting violation.`);
+                    console.error(`${err}`);
+                    throw err;
                 }
             })
         );
 
-
-    //     const result = await connection.query(
-    //         `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`
-    // );
-        console.log('saved violation result to db: ');
+        console.log(`${path}: Finished inserting ${violations.length} into database`);
 
         const response = {
             statusCode: 200,
