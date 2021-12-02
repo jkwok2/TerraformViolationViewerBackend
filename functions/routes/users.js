@@ -32,7 +32,7 @@ usersAPI.post(
         return res.status(200).send(rows[0]);
       } else {
         const [rows, _] = await con.query(
-          `Insert into \`database-1\`.\`Users\` (userId, email, givenName, familyName, userRole) values ('${req.body.userId}', '${req.body.email}', '${req.body.givenName}', '${req.body.familyName}', '${req.body.userRole}')`
+          `Insert into \`database-1\`.\`Users\` (userId, email, givenName, familyName, userRole) values ('${req.body.userId}','${req.body.email}', '${req.body.givenName}', '${req.body.familyName}', '${req.body.userRole}')`
         );
         console.log({ rows });
         con.end();

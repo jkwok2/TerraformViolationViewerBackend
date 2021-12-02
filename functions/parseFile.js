@@ -6,7 +6,7 @@ const initializeConnection = require('./routes/common');
 const YAML = require('yaml')
 const axios = require('axios')
 
-// const invokeLambda = require('functions/utilities/invokeLambda.js');
+const invokeLambda = require('functions/utilities/invokeLambda.js');
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
 
@@ -98,9 +98,6 @@ function createObject(rulez) {
     return rules;
 } 
 
-// const invokeLambda = require('functions/utilities/invokeLambda.js');
-// const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
-
 
 const grepWithShell = (grepSearch, filePath) => {
     return new Promise((resolve, reject) => {
@@ -121,6 +118,9 @@ const grepWithShell = (grepSearch, filePath) => {
 
 const getLineNumber = (data) => {
     //TODO: TA --- I think this is the same problem as Seven of Spades promise.chain hell
+    //not sure what the issue is, returning -2;
+    data.lineNumber = -2;
+    return;
 
     const grepSearch = `${data.resourceType}`;
     return new Promise((resolve, reject) => {
@@ -176,16 +176,17 @@ const addError = async(e) => {
 }
 
 
-const addViolation = async(violationRule, resourceType, resourceName, filePath) => {
-    console.log(`Inside addViolation with violationRule: ${violationRule}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
+const addViolation = async(violationRule, resourceType, resourceName, filePath, rulesObject) => {
+    console.log(`Inside addViolation with violationRule: ${JSON.stringify(violationRule)}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
+    console.log(JSON.stringify(rulesObject));
     try {
-        // const lineNumber = await getLineNumber(resourceType, resourceName, filePath);
+        //const lineNumber = await getLineNumber(resourceType, resourceName, filePath);
         // userId, filePath, lineNumber, violationType, dateFound
         const violation = {
-            violationRuleId: violationRule.id,
+            violationRuleId: rulesObject.ruleId,
             filePath: filePath,
             //category: violationRule.category,
-            lineNumber: undefined,
+            lineNumber: -1,
             dateFound: Date.now(),
             resourceType: resourceType, // TODO: TA temp data
             resourceName: resourceName
@@ -200,7 +201,7 @@ const addViolation = async(violationRule, resourceType, resourceName, filePath) 
 }
 
 // has no key, has no value at key, has no value in range at key
-const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, resource, filePath) => {
+const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, resource, filePath, rulesObject) => {
     // check if violation rule is properly formatted, if not ignore rule
     if (!hasProperty(hasNotViolationRule, "key")) return;
     try {
@@ -209,7 +210,7 @@ const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, res
         // checking for value
         if (hasNotViolationRule.hasOwnProperty("value")) {
             if (getPropertyValue(resource, hasNotViolationRule.key) === hasNotViolationRule.value) {
-                addViolation(hasNotViolationRule, resourceType, resourceName, filePath);
+                addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject);
             }
             return;
         }
@@ -218,34 +219,34 @@ const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, res
             const rangeValues = hasNotViolationRule.range;
             const value = getPropertyValue(resource, hasNotViolationRule.key);
             if (rangeValues.some(v => v === value)) {
-                addViolation(hasNotViolationRule, resourceType, resourceName, filePath);
+                addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject);
             }
             return;
         }
         // has property when it shouldn't
-        addViolation(hasNotViolationRule, resourceType, resourceName, filePath);
+        addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject);
     } catch (e) {
         console.log(`Resource type: ${resourceType}, resource name: ${resourceName}, violation rule: ${hasNotViolationRule.id} skipped due to parsing error`);
     }
 }
 
 // has key, has key value, has key value in range
-const hasSingle = async (resourceType, resourceName, hasViolationRule, resource, filePath) => {
+const hasSingle = async (resourceType, resourceName, hasViolationRule, resource, filePath, rulesObject) => {
     // check if violation rule is properly formatted, if not ignore rule
-    console.log(`In hasSingle with resourceType: ${resourceType}, resourceName: ${resourceName}, hasViolationRule: ${hasViolationRule}, resource: ${resource}`);
+    console.log(`In hasSingle with resourceType: ${resourceType}, resourceName: ${resourceName}, hasViolationRule: ${JSON.stringify(hasViolationRule)}, resource: ${resource}`);
     if (!hasProperty(hasViolationRule, "key")) return;
     console.log(`rule has key for ${resourceName}`);
     try {
         // check if key is in resource
         if (!hasProperty(resource, hasViolationRule.key)) {
-            addViolation(hasViolationRule, resourceType, resourceName, filePath);
+            addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
             console.log(`Property is missing for ${resourceName}`);
             return;
         }
         // if checking for value, see if they match
         if (hasProperty(hasViolationRule, "value")) {
             if (getPropertyValue(resource, hasViolationRule.key) !== hasViolationRule.value) {
-                addViolation(hasViolationRule, resourceType, resourceName, filePath);
+                addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
                 console.log(`Value does not equate for ${resourceName}`);
             }
             return;
@@ -255,7 +256,7 @@ const hasSingle = async (resourceType, resourceName, hasViolationRule, resource,
             const rangeValues = hasViolationRule.range;
             const value = getPropertyValue(resource, hasViolationRule.key);
             if (!rangeValues.some(v => v === value)) {
-                addViolation(hasViolationRule, resourceType, resourceName, filePath);
+                addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
                 console.log(`Range does not equate for ${resourceName}`);
             }
             return;
@@ -268,15 +269,15 @@ const hasSingle = async (resourceType, resourceName, hasViolationRule, resource,
 }
 
 
-const hasNotList = async(resourceType, resourceName, hasNotViolationRules, resource, filePath) => {
+const hasNotList = async(resourceType, resourceName, hasNotViolationRules, resource, filePath, rulesObject) => {
     hasNotViolationRules.forEach(r => {
-        hasNotSingle(resourceType, resourceName, r, resource, filePath);
+        hasNotSingle(resourceType, resourceName, r, resource, filePath, rulesObject);
     })
 }
 
-const hasList = async(resourceType, resourceName, hasViolationRules, resource, filePath) => {
+const hasList = async(resourceType, resourceName, hasViolationRules, resource, filePath, rulesObject) => {
     hasViolationRules.forEach(r => {
-        hasSingle(resourceType, resourceName, r, resource, filePath);
+        hasSingle(resourceType, resourceName, r, resource, filePath, rulesObject);
     });
 }
 
@@ -286,15 +287,17 @@ const processResource = async(resource, violationRules, resourceType, resourceNa
     // TODO: TA - minor fix from the entire rules object to actually just its content?
     let rulesObject =  violationRules.content
 
+    // need rulesObject for ruleId for any violations found
     if (typeof rulesObject !== "undefined") {
         if (rulesObject.hasOwnProperty('has')) {
-            hasList(resourceType, resourceName, rulesObject.has, resource, filePath);
+            hasList(resourceType, resourceName, rulesObject.has, resource, filePath, violationRules);
 
 
         } else if (rulesObject.hasOwnProperty('has_not')) {
-            hasNotList(resourceType, resourceName, rulesObject.has_not, resource, filePath);
+            hasNotList(resourceType, resourceName, rulesObject.has_not, resource, filePath, violationRules);
         }
     } else {
+        console.log("undefined in process resource");
         return Promise.resolve(true);
     }
 }
@@ -312,10 +315,16 @@ module.exports.parseFile = async (event, context, callback) => {
     const prID = event.prId; // TODO - TA: I couldnt find this but it seems required for the DB
     const repo = event.repoName;
     const prDate = event.prDate;
+    const userId = event.userId;
+    const email = event.email;
+    const name = event.name;
 
     // getFile(filePath, fileName, githubFullPath);
     console.log(`start reading file ${fileName}`);
     console.log(`start reading file ${filePath}`);
+
+    //select 1 from `database-1`.Violations v;
+
 
     // hacky way to get around race condition if file doesn't exist in EFS yet
     var fileNotFound = true;
@@ -344,8 +353,6 @@ module.exports.parseFile = async (event, context, callback) => {
         body: `Parsing for ${file.githubFullPath} is complete`
     }
 
-    //const processThreads = [];
-
     try {
         const parsedTerraformFile = hcltojson(terraformFile);
         console.log(`Terraform file ${fileName} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`);
@@ -369,19 +376,17 @@ module.exports.parseFile = async (event, context, callback) => {
 
         var pThreads = [];
         try {
-            let lstOfRulez = await getRules(con, queryString);
-            lstOfRulez = mapRulesToYAMLContent(lstOfRulez);
+            let lstOfRulez = await con.query(queryString);
+            lstOfRulez = mapRulesToYAMLContent(lstOfRulez[0]);
 
             console.log("after getRules");
             console.log(JSON.stringify(lstOfRulez));
 
             for (let violationRulesByResourceType of lstOfRulez) {
 
-
                 let rulezData = JSON.stringify(violationRulesByResourceType);
 
-
-                if (rulezData !== '{}' && Object.keys(violationRulesByResourceType).length > 0 && violationRulesByResourceType.awsresource === resourceTypesStringify) {
+                if (rulezData !== '{}' && Object.keys(violationRulesByResourceType).length > 0 && resourceTypes.includes(violationRulesByResourceType.awsresource)) {
                     console.log(`inside loop ${rulezData}`);
                     const resourceType = violationRulesByResourceType.awsresource;
                     const resources = parsedResources[resourceType];
@@ -391,7 +396,8 @@ module.exports.parseFile = async (event, context, callback) => {
                         // TODO: TA - another type casting. This right now, violationRulesByResourceType is a RowDataPacket, better have it as a plain object (for now), hence why I call JSON.parse
                         //figure out why this is broken
                         // should be Promise.allSettled
-                        pThreads.push(processResource(resources[rn], JSON.parse(rulezData), resourceType, rn, filePath));
+                        console.log("rn: " + rn);
+                        pThreads.push(await processResource(resources[rn], JSON.parse(rulezData), resourceType, rn, filePath));
                         console.log(`set thread to process of ${rn}`); // TODO: TA - nit, it s a promise, might not be finished at this point in time. I really don't like promises :~~
                     }
                 }
@@ -399,7 +405,7 @@ module.exports.parseFile = async (event, context, callback) => {
             }
             console.log("process Threads: " + pThreads);
         } catch (e){
-            setImmediate(() => { throw err; });
+            setImmediate(() => { throw e; });
         }
 
 
@@ -420,38 +426,68 @@ module.exports.parseFile = async (event, context, callback) => {
                     violations: violationsFound,
                 };
 
-                const userId = await getIdFromDB(username);
+                let violations = [];
 
-                for(const violationData of violationLst) {
+                for(const violationData of result.violations) {
                     // TODO: TA - need to put the file write back
 
+                    let prCreated = new Date(prDate);
+                    prCreated = prCreated.toISOString();
+
+                    let violationFound = new Date(violationData.dateFound);
+                    violationFound = violationFound.toISOString();
+
                     const dbData = {
-                        "userId": userId,    //"105966689851359954303",
-                        "repoId": repo,
-                        "prId": prID,
-                        "filePath": "",
-                        "lineNumber": violationData.lineNumber,
-                        "ruleId": violationData.violationRuleId,
-                        "prTime": prDate,
-                        "dateFound": violationData.dateFound
+                        userId: userId,
+                        repoId: repo,
+                        prId: prID.toString(),
+                        filePath:  githubFullPath,
+                        lineNumber: violationData.lineNumber,
+                        ruleId: violationData.violationRuleId,
+                        prTime: prCreated,
+                        dateFound: violationFound
                     };
 
-                    await sendViolationsToDB(dbData);
+                    violations.push(dbData);
 
+                }
+
+                const jsonViolations = JSON.stringify(violations);
+                console.log(jsonViolations);
+
+                if (violations.length > 0) {
+                    const res = await sendViolationsToDB(violations);
+                    console.log(res);
+                } else {
+                    console.log("no violations found");
                 }
 
                 console.log("done?")
 
-                // TODO: TA - check how to call the code below?
-                // let emailPayload = {
-                //     name: username,           // name of recipient
-                //     statVal: statVal,        // pass/fail/error
-                //     errCount: errCount,       // number of violations
-                //     repoName: repo        // name of pr repo
-                // }
-                //
-                // invokeLambda(emailLambdaName, emailPayload, 'Event');
-            }).catch((err2) => {
+                let statVal = "success";
+                if (violations.length > 0) {
+                    statVal = "fail";
+                }
+
+                //TODO: TA - check how to call the code below?
+                let emailPayload = {
+                    name: name,           // name of recipient
+                    address: email,
+                    statVal: statVal,        // pass/fail/error
+                    errCount: violations.length,       // number of violations
+                    repoName: repo        // name of pr repo
+                }
+                
+                invokeLambda(emailLambdaName, emailPayload, 'Event');
+
+                const response = {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                        results: result,
+                    }),
+                };
+                return callback(null, response);
+            }).catch((err) => {
                 // TODO: TA - need to throw some error response with bad request here?
                 console.log(err);
             });
@@ -475,8 +511,9 @@ module.exports.parseFile = async (event, context, callback) => {
     }
 };
 
-function getRules(con, queryString)
+async function getRules(con, queryString)
 {
+
     return new Promise(function(resolve, reject) {
 
         let rulez = [];
@@ -494,33 +531,26 @@ function getRules(con, queryString)
     });
 }
 
-const sendViolationsToDB = async (violation) => {
+const sendViolationsToDB = async (violations) => {
+
+    const options = {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+      };
 
     console.log("sending a violation to db");
-    // console.log(violation);
     const url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/violations`;
-    return axios.post(url, violation)
+    return axios.post(url, {body: {violations}}, options)
         .then((res) => {
-            console.log(res.data);
-            return res.data;
+            console.log("res: ");
+            console.log(res);
+            return res;
     }).catch((err) => {
         console.log(err);
+        return err;
     });
 };
-
-// TODO: I don't know what is the username, I tried both my github ID and email, but I got undefined
-async function getIdFromDB(username) {
-
-    console.log(`requesting email from database for ${username}`);
-  
-    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
-    return axios.get(db_url).then((res) => {
-        console.log(res.data[0]);
-        return res.data[0].userId;
-    }).catch((err) => {
-        return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
-    });
-  }
 
 
 // TODO: TA - uncomment the code below and run it locally for easier debugging :-)
@@ -536,3 +566,6 @@ async function getIdFromDB(username) {
 // }
 //
 // parseFile(event, undefined, undefined);
+
+// remove module.exports in front of parseFile
+// change TerraformFile = Buffer(.,m) to terraformFile = tempFile that points to 
