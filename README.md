@@ -19,16 +19,17 @@ There are two privilege levels: regular user, and admin.
 
 ## installation
 
-The backend installation instructions are located in the _ folder. They should be completed in the following order:
+The backend installation instructions should be completed in the following order:
 1. AWS CLI
-2. Serverless
+2. Serverless install
 3. RDS
 4. Email
 5. Webhook
+6. Serverless deploy
 
 ## Available Scripts
 
-### `yarn uploadTemplate`
+### `yarn setUpTemplate`
 
 **IMPORTANT: Do not run this more than once, this is to create a template on AWS SES and does not update it**\
 **Note: This is part of the setup process. Refer to the Email Setup Instructions documentations.**\
@@ -40,10 +41,7 @@ Uploads email templates to your specified AWS account.
 Sends one test email from your specified source email to the same email.\
 This is used to make sure you have successfully uploaded the email templates and have entered the correct source email.
 
-### `RDS setup?`
+### `yarn deployPackaged`
 
-### `yarn deploy`
-
-
-**(might not be true) IMPORTANT: this is only for the setup process, to deploy any changes, use the normal deployment command `sls deploy`.**\
+**IMPORTANT: this is only for the setup process, to deploy any changes, use the normal deployment command `sls deploy`.**\
 Deploys the provided package to AWS.
