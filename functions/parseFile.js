@@ -8,7 +8,7 @@ const axios = require('axios')
 
 const invokeLambda = require('functions/utilities/invokeLambda.js');
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
-const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
+const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
 
 aws.config.region = process.region;
 //const spawn = require('child_process').spawn;
