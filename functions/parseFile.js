@@ -6,7 +6,7 @@ const {
   LineNumberNotFoundError,
   GrepError,
 } = require('./additionalViolationErrors');
-// const initializeConnection = require('./routes/common');
+//const initializeConnection = require('./routes/common');
 const connection = require('./routes/common');
 const YAML = require('yaml');
 const axios = require('axios');
@@ -527,7 +527,7 @@ module.exports.parseFile = async (event, context, callback) => {
       });
     }
 
-    await connection.quit();
+    //await connection.quit();
 
     Promise.all(pThreads)
       .then(async () => {
@@ -578,32 +578,35 @@ module.exports.parseFile = async (event, context, callback) => {
 
             let vResult;
             if (violations.length > 0) {
-              const vResult = await sendViolationsToDB(violations);
-              console.log('vresult: ', vResult);
+              //await sendViolationsToDB(violations);
             } else {
               console.log('no violations found');
             }
 
-            console.log('prDate: ' + prDate);
-
             const numViolations = violations.length;
             // status: 0 = success, 1 = violations found, 2 = error
-            const postResult = JSON.stringify({
-              results: [
-                {
-                  prUpdateTime: prCreated,
-                  numViolations: numViolations,
-                  status: 1,
-                },
-              ],
+            const status = (numViolations > 0) ? 1 : 0;
+
+            const postResult = { prUpdateTime: prCreated,
+              numViolations: numViolations,
+              status: status };
+            const data = JSON.stringify(postResult);
+            const jsonResult = JSON.stringify(postResult);
+
+            const test = await connection.query(
+                `Insert into \`database-1\`.\`Results\` (prUpdateTime, numViolations, status) values ('${data.prUpdateTime}', '${data.numViolations}', '${data.status}')`
+            ).then((res) => {
+              console.log('then result: ', res);
+              return res;
             });
+           console.log('inserted result: ', test);
 
-            const fileResult = await sendResultToDB(postResult, fileName);
-            console.log(`fileResult: ${fileResult}`);
+            // const fileResult = await sendResultToDB(jsonResult, fileName);
+            // console.log(`fileResult: ${fileResult}`)
 
+            await connection.end();
             console.log('done?');
 
-            return callback(null, responseComplete);
           })
           .catch((err) => {
             // TODO: TA - need to throw some error response with bad request here?
@@ -639,8 +642,8 @@ const sendViolationsToDB = async (violations) => {
     .post(url, { body: { violations } }, options)
     .then((res) => {
       console.log('res from sending violations to the db: ');
-      console.log(res);
-      return res;
+      console.log(res.data);
+      return res.data;
     })
     .catch((err) => {
       console.log('err from sending violations to the db: ', err);

@@ -37,11 +37,11 @@ resultsAPI.post('/results', async (req, res) => {
     //     console.log('inserted result: ', result);
     //   })
     // );
-    await connection.quit();
+
     return res.status(200).send(data);
   } catch (err) {
     console.log('results post error: ', err);
-    await connection.quit();
+    await connection.end();
     return res.status(500).send(err);
   }
 });
@@ -65,7 +65,7 @@ resultsAPI.get('/results/', async (req, res, next) => {
     return res.status(200).send(rows);
   } catch (err) {
     console.log({ err });
-    await connection.quit();
+    await connection.end();
     return res.status(500).send(err);
   }
 });

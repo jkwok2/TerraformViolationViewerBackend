@@ -76,9 +76,12 @@ module.exports.webhook = async (event, context, callback) => {
   // check database for results
   let tries = 0;
   let results = 0;
-  while (tries < 10) {
-    results = getResultsFromDB(pullRequest.timestamp);
+  const prUpdateTime = new Date(pullRequest.timestamp).toISOString();
+  console.log("prUpdateTime: " + prUpdateTime);
+  while (tries < 2) {
+    setInterval(function() {}, 1000);
 
+    results = getResultsFromDB(prUpdateTime);
     // checking if we have all the results
     if (results.length == files.length) {
       break;

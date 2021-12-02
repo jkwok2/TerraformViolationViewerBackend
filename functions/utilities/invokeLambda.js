@@ -14,7 +14,7 @@ const invokeLambda = (lambdaName, payload) => {
 
     const params = {
         FunctionName: lambdaName, // Name of the function to be called
-        InvocationType: 'RequestResponse', // For synchronous calls
+        InvocationType: 'Event', // For synchronous calls
         LogType: 'None', // Do not return log from invoked function
         Payload : JSON.stringify(payload) // The payload sent to the function
     };
