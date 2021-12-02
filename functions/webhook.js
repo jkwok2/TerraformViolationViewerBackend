@@ -3,15 +3,11 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const aws = require('aws-sdk');
-const fs = require('fs');
 
 const invokeLambda = require('functions/utilities/invokeLambda.js');
 
-aws.config.region = process.region;
-var lambda = new aws.Lambda();
+aws.config.region = process.region;;
 
-const writeFileLambdaName = 'hsbc-backend-app-dev-writeFile';
-const monitorLambdaName = 'hsbc-backend-app-dev-monitor';
 const parseFileLambdaName = 'hsbc-backend-app-dev-parseFile';
 const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
 
@@ -43,12 +39,15 @@ module.exports.webhook = async (event, context, callback) => {
     timestamp: Date.parse(body.pull_request.updated_at),
   };
 
-    console.log("timestamp: " + pullRequest.timestamp);
-    console.log("body.pull_request.id: " + pullRequest.id);
-    console.log("body.pull_request.user.id: " + body.pull_request.user.id);
-
   const fileUrls = await getFileUrls(pullRequest.url + '/files');
   const files = await getChangedFilesContent(fileUrls);
+
+  if (files.length === 0) {
+    // no modified Terraform files, return;
+    console.log(`No modified Terraform files in Pull Request ${pullRequest.id}`);
+    return callback(null, response);
+  }
+
   const user = await getUserFromDB(pullRequest.username);
   console.log('user ' + JSON.stringify(user));
 
@@ -75,7 +74,7 @@ async function getUserFromDB(username) {
 
     console.log(`requesting user info from database for ${username}`);
   
-    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    const db_url = `https://u4uplkwumb.execute-api.ca-central-1.amazonaws.com/dev/users/?username=${username}`;
     console.log(db_url);
 
     return axios.get(db_url)
@@ -83,7 +82,7 @@ async function getUserFromDB(username) {
             return res.data;
         }).catch((err) => {
             console.log("err " + err);
-            return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
+            return 105966689851359954303; // TODO remove/change
         });
 }
 
@@ -131,7 +130,6 @@ function getContent(url) {
       },
     })
     .then((res) => {
-      console.log(res.data);
       return {
         name: res.data.name,
         path: res.data.path,

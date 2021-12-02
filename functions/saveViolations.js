@@ -13,7 +13,7 @@ module.exports.saveViolations = async (event, context, callback) => {
                     const result = await connection.query(
                         `Insert into \`database-1\`.\`Violations\` (userId, repoId, prId, filePath, lineNumber, ruleId, prTime, dateFound) values ('${violation.userId}', '${violation.repoId}', '${violation.prId}', '${violation.filePath}', '${violation.lineNumber}', '${violation.ruleId}', '${violation.prTime}', '${violation.dateFound}')`
                     );
-                    console.log('inserted violation: ', { result });
+                    console.log('inserted violation successfully');
                 } catch (err) {
                     console.log(`${path}: error when inserting violation.`);
                     console.error(`${err}`);
@@ -30,7 +30,6 @@ module.exports.saveViolations = async (event, context, callback) => {
                 input: event,
             }),
         };
-
         return callback(null, response);
     } catch (err) {
         return callback(err, {

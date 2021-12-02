@@ -20,7 +20,6 @@ rulesAPI.use((req, res, next) => {
 });
 
 rulesAPI.get('/rules', async (req, res) => {
-  // const con = initializeConnection();
   try {
     const rows = await connection.query('select * from `database-1`.`Rules`');
     console.log({ rows });
@@ -37,7 +36,6 @@ rulesAPI.patch(
   '/rules/:ruleId',
   validateRequest(ruleSchema.updateRuleById, 'params'),
   async (req, res) => {
-    // const con = initializeConnection();
     let query;
     console.log('start: ', req.body, req.params);
     if (req.body.status) {

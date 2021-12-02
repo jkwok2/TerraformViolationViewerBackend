@@ -3,7 +3,6 @@ const express = require('express');
 const userSchema = require('../schemas/user');
 const validateRequest = require('../middlewares/validateRequest');
 const errorHandler = require('../middlewares/errorHandler');
-// const initializeConnection = require('./common');
 const connection = require('./common');
 
 const usersAPI = express();
@@ -23,7 +22,6 @@ usersAPI.post(
   '/users',
   validateRequest(userSchema.userPost),
   async (req, res) => {
-    // const con = initializeConnection();
     try {
       const rows = await connection.query(
         `select * from \`database-1\`.\`Users\` where userId='${req.body.userId}'`
@@ -51,7 +49,6 @@ usersAPI.patch(
   '/users/:userId',
   validateRequest(userSchema.userUpdateById, 'params'),
   async (req, res) => {
-    // const con = initializeConnection();
     try {
       const rows = await connection.query(
         `update \`database-1\`.\`Users\` set username='${req.body.username}' where userId='${req.params.userId}'`
@@ -68,7 +65,6 @@ usersAPI.patch(
 );
 
 usersAPI.get('/users/', async (req, res) => {
-  // const con = initializeConnection();
   const uname = req.query.username;
   const uid = req.query.userId;
   let query;

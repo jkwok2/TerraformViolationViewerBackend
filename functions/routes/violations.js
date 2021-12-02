@@ -17,8 +17,6 @@ violationsAPI.use((req, res, next) => {
 });
 
 violationsAPI.post('/violations', async (req, res) => {
-  // const con = initializeConnection();
-  //const data = req.body;
 
   try {
     console.log('violations post');
@@ -54,7 +52,6 @@ violationsAPI.post('/violations', async (req, res) => {
 
 violationsAPI.get('/violations', async (req, res) => {
   console.log('/violations get');
-  // const con = initializeConnection();
   try {
     const rows = await connection.query(
       'select v.violationId, r.ruleId, u.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, r.content, v.prTime, v.dateFound from `database-1`.`Rules` r, `database-1`.`Violations` v, `database-1`.`Users` u where r.ruleId = v.ruleId and u.userId = v.userId'
@@ -72,7 +69,6 @@ violationsAPI.get('/violations', async (req, res) => {
 
 violationsAPI.get('/violations/repo', async (req, res) => {
   console.log('/violations get repo');
-  // const con = initializeConnection();
   try {
     const rows = await connection.query(
       'select count(*) as numOfViolations, repoId FROM `database-1`.`Violations` GROUP BY repoId order by numOfViolations desc limit 10'
@@ -90,7 +86,6 @@ violationsAPI.get('/violations/repo', async (req, res) => {
 
 violationsAPI.get('/violations/type', async (req, res, next) => {
   console.log('/violations get type');
-  // const con = initializeConnection();
   try {
     const rows = await connection.query(
       'select count(*) as numOfViolation, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v where r.ruleId = v.ruleId group by r.violationCategory'
@@ -108,7 +103,6 @@ violationsAPI.get('/violations/type', async (req, res, next) => {
 
 violationsAPI.get('/violations/user/type', async (req, res) => {
   console.log('/violations/user/type get');
-  // const con = initializeConnection();
   try {
     const rows = await connection.query(
       'select count(1) as numOfViolation, u.username, r.violationCategory from `database-1`.`Rules` r, `database-1`.`Violations` v, `database-1`.`Users` u where r.ruleId = v.ruleId and v.userId = u.userId group by v.userId, r.violationCategory order by numOfViolation desc limit 10'
@@ -126,7 +120,6 @@ violationsAPI.get('/violations/user/type', async (req, res) => {
 
 violationsAPI.get('/violations/user/:userId', async (req, res, next) => {
   console.log('/violations/user/userId get');
-  // const con = initializeConnection();
   try {
     const rows = await connection.query(
       `select v.violationId, r.ruleId, u.username, v.repoId, v.prId, v.filePath, v.lineNumber, r.severity, r.violationCategory, r.content, v.prTime, v.dateFound from \`database-1\`.\`Rules\` r, \`database-1\`.\`Violations\` v, \`database-1\`.\`Users\` u where r.ruleId = v.ruleId and v.userId='${req.params.userId}' and u.userId='${req.params.userId}'`
