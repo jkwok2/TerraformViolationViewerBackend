@@ -5,7 +5,7 @@ const aws = require("aws-sdk");
 const axios = require("axios");
 //const usersAPI = require('functions/routes/users.js');
 
-const ses = new aws.SES({ region: "us-east-1" });
+const ses = new aws.SES({ region: "us-west-1" });
 
 module.exports.emailSender = async function (event) {
 
@@ -69,7 +69,7 @@ module.exports.emailSender = async function (event) {
   // console.log("address: " + address);
 
   let params = {
-    Source: "process.env.SOURCE_NAME <process.env.SOURCE_EMAIL_ADDRESS>",
+    Source: "Group 4 <kevinguowm@gmail.com>",
     Template: temp,
     Destination: {
       ToAddresses: [address]
