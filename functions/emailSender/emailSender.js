@@ -5,7 +5,7 @@ const aws = require("aws-sdk");
 const axios = require("axios");
 //const usersAPI = require('functions/routes/users.js');
 
-const ses = new aws.SES({ region: "us-west-1" });
+const ses = new aws.SES({ region: "us-west-2" });
 
 module.exports.emailSender = async function (event) {
 
@@ -79,10 +79,7 @@ module.exports.emailSender = async function (event) {
   console.log("sending email..");
   console.log("address: " + address);
 
-  ses.sendTemplatedEmail(params, function (err, data) {
-    if (err) console.log(err, err.stack);
-    else console.log(data);
-  })
+  return ses.sendTemplatedEmail(params).promise();
 };
 
 async function getEmailFromDB(username) {
