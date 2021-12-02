@@ -26,7 +26,7 @@ provider:
 
   # you can overwrite defaults here
   stage: dev
-  region: us-east-1
+  region: ca-central-1
 
   vpc:
     securityGroupIds:
@@ -83,7 +83,6 @@ functions:
     maximumRetryAttempts: 0
   monitor:
     handler: functions/monitor.monitor
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn

@@ -11,7 +11,7 @@ const connection = require('./routes/common');
 const YAML = require('yaml');
 const axios = require('axios');
 
-const invokeLambda = require('functions/utilities/invokeLambda.js');
+//const invokeLambda = require('functions/utilities/invokeLambda.js');
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
 const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
 
@@ -550,12 +550,11 @@ module.exports.parseFile = async (event, context, callback) => {
             };
 
             let violations = [];
+            let prCreated = new Date(prDate);
+            prCreated = prCreated.toISOString();
 
             for (const violationData of result.violations) {
               // TODO: TA - need to put the file write back
-
-              let prCreated = new Date(prDate);
-              prCreated = prCreated.toISOString();
 
               let violationFound = new Date(violationData.dateFound);
               violationFound = violationFound.toISOString();
@@ -592,7 +591,7 @@ module.exports.parseFile = async (event, context, callback) => {
             const postResult = JSON.stringify({
               results: [
                 {
-                  prUpdateTime: prDate,
+                  prUpdateTime: prCreated,
                   numViolations: numViolations,
                   status: 1,
                 },
@@ -649,7 +648,7 @@ const sendViolationsToDB = async (violations) => {
     });
 };
 
-const sendResultToDB = async (results, filename) => {
+const sendResultToDB = async (result, filename) => {
   const options = {
     headers: {
       'Content-Type': 'application/json',
@@ -659,7 +658,7 @@ const sendResultToDB = async (results, filename) => {
   console.log(`sending result for ${filename} to db`);
   const url = `https://fc8rbf4rnb.execute-api.us-east-1.amazonaws.com/dev/results`;
   return axios
-    .post(url, { body: { results } }, options)
+    .post(url, { body: { result } }, options)
     .then((res) => {
       console.log('res: ');
       console.log(res);
@@ -671,14 +670,27 @@ const sendResultToDB = async (results, filename) => {
     });
 };
 
-// TODO: TA - uncomment the code below and run it locally for easier debugging :-)
-// event = {
-//     fileName: "ensure-docdb-has-audit-logs-enabled.test.wrong-value.tf",
-//     dir: "/home/msarthur/Workspace/yaml-rules-and-terraform-violations/storage",
-//     username:  "marquesarthur",
-//     repo: "https://github.com/CPSC-319/yaml-rules-and-terraform-violations",
-//     prDate: Date(),
-//     githubFullPath: "????",
+// // TODO: TA - uncomment the code below and run it locally for easier debugging :-)
+// const event = {
+//     fileName: "local-test.tf",
+//     content: 'cmVzb3VyY2UgImF3c19hdGhlbmFfd29ya2dyb3VwIiAidGVzdCIgewogY29u\n' +
+//         'ZmlndXJhdGlvbiB7CiAgIHJlc3VsdF9jb25maWd1cmF0aW9uIHsKICAgICBv\n' +
+//         'dXRwdXRfbG9jYXRpb24gPSAiczM6Ly9teXMzYnVja2V0IgogICAgfQogIH0K\n' +
+//         'fQoKcmVzb3VyY2UgImF3c19zZWN1cml0eV9ncm91cCIgImV4YW1wbGUiIHsK\n' +
+//         'ICBpbmdyZXNzIHsKICAgIGZyb21fcG9ydCAgID0gMzM4OQogICAgdG9fcG9y\n' +
+//         'dCAgICAgPSAzMzg5CiAgICBwcm90b2NvbCAgICA9ICJ0Y3AiCiAgICBjaWRy\n' +
+//         'X2Jsb2NrcyA9IFsiMC4wLjAuMC8wIl0KICB9ICAKfQoKcmVzb3VyY2UgImF3\n' +
+//         'c19jbG91ZGZyb250X2Rpc3RyaWJ1dGlvbiIgImNsb3VkZnJvbnQiIHsKICBk\n' +
+//         'ZWZhdWx0X2NhY2hlX2JlaGF2aW9yIHsKICAgIHRhcmdldF9vcmlnaW5faWQg\n' +
+//         'ICAgICAgPSAibXktb3JpZ2luIgogICAgdmlld2VyX3Byb3RvY29sX3BvbGlj\n' +
+//         'eSA9ICJhbGxvdy1hbGwiCiAgfQp9Cg==\n',
+//     path: "/Group4HSBC/",
+//     username:  "mthibodeau",
+//     userId:  "105966689851359954303",
+//     email: "megthibodeau@gmail.com",
+//     repoName: "local",
+//     prDate: new Date(),
+//     prId: 1234
 //
 //
 // }

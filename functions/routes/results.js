@@ -22,16 +22,21 @@ resultsAPI.post('/results', async (req, res) => {
   try {
     console.log('posting results: ', req.body);
 
-    const data = req.body.body.results;
+    const data = req.body.body.result;
 
-    await Promise.all(
-      data.map(async (prUpdateResult) => {
-        const result = await connection.query(
-          `Insert into \`database-1\`.\`Results\` (prUpdateTime, numViolations, status) values ('${prUpdateResult.prUpdateTime}', '${prUpdateResult.numViolations}', '${prUpdateResult.status}')`
-        );
-        console.log('inserted result: ', result);
-      })
+    const result = await connection.query(
+        `Insert into \`database-1\`.\`Results\` (prUpdateTime, numViolations, status) values ('${data.prUpdateTime}', '${data.numViolations}', '${data.status}')`
     );
+    console.log('inserted result: ', result);
+
+    // await Promise.all(
+    //   data.map(async (prUpdateResult) => {
+    //     const result = await connection.query(
+    //       `Insert into \`database-1\`.\`Results\` (prUpdateTime, numViolations, status) values ('${prUpdateResult.prUpdateTime}', '${prUpdateResult.numViolations}', '${prUpdateResult.status}')`
+    //     );
+    //     console.log('inserted result: ', result);
+    //   })
+    // );
     await connection.quit();
     return res.status(200).send(data);
   } catch (err) {
