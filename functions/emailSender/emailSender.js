@@ -5,7 +5,7 @@ const aws = require("aws-sdk");
 const axios = require("axios");
 //const usersAPI = require('functions/routes/users.js');
 
-const ses = new aws.SES({ region: "us-west-2" });
+const ses = new aws.SES({ region: "us-east-1" });
 
 module.exports.emailSender = async function (event) {
 
@@ -69,7 +69,7 @@ module.exports.emailSender = async function (event) {
   // console.log("address: " + address);
 
   let params = {
-    Source: "Group 4 <kevinguowm@gmail.com>",
+    Source: "Group 4 <cpsc319fall2021@gmail.com>",
     Template: temp,
     Destination: {
       ToAddresses: [address]
@@ -78,8 +78,7 @@ module.exports.emailSender = async function (event) {
   };
   console.log("sending email..");
   console.log("address: " + address);
-
-  return ses.sendTemplatedEmail(params).promise();
+  return ses.sendTemplatedEmail(params).promise()
 };
 
 async function getEmailFromDB(username) {
@@ -88,8 +87,8 @@ async function getEmailFromDB(username) {
 
   const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
   return axios.get(db_url).then((res) => {
-      console.log(res.data[0]);
-      return res.data[0].email;
+    console.log(res.data[0]);
+    return res.data[0].email;
   });
 }
 
