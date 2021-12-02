@@ -1,0 +1,8 @@
+{
+  "Source": "SourceName <someAddress@gmail.com>",
+  "Template": "scannedTemplate",
+  "Destination": {
+    "ToAddresses": ["someAddress@gmail.com"]
+  },
+  "TemplateData": "{ \"name\":\"someName\", \"repoName\":\"someRepo\", \"errCount\":\"42\"}"
+}

@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const aws = require('aws-sdk');
+const fs = require('fs');
 
 const invokeLambda = require('functions/utilities/invokeLambda.js');
 
@@ -19,18 +20,17 @@ const fileType = '.tf';
 module.exports.webhook = async (event, context, callback) => {
   validateGithubWebhookResponse(event, callback);
 
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      input: event,
-    }),
-  };
+    const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+            input: event,
+        }),
+    };
 
-  let body = JSON.parse(event.body);
-  console.log('action ' + body.action);
-  // Only scan Terraform files when PR is created
-  if (body.action !== 'opened' && body.action !== 'reopened')
-    return callback(null, response);
+    let body = JSON.parse(event.body);
+    console.log('action ' + body.action);
+    // Only scan Terraform files when PR is created
+    if (body.action !== 'opened' && body.action !== 'reopened') return callback(null, response);
 
   const pullRequest = {
     id: body.pull_request.id,
@@ -43,9 +43,9 @@ module.exports.webhook = async (event, context, callback) => {
     timestamp: Date.parse(body.pull_request.updated_at),
   };
 
-  console.log('timestamp: ' + pullRequest.timestamp);
-  console.log('body.pull_request.id: ' + pullRequest.id);
-  console.log('body.pull_request.user.id: ' + pullRequest.userid); //body.pull_request.user.id);
+    console.log("timestamp: " + pullRequest.timestamp);
+    console.log("body.pull_request.id: " + pullRequest.id);
+    console.log("body.pull_request.user.id: " + body.pull_request.user.id);
 
   const fileUrls = await getFileUrls(pullRequest.url + '/files');
   const files = await getChangedFilesContent(fileUrls);
@@ -72,37 +72,19 @@ module.exports.webhook = async (event, context, callback) => {
 };
 
 async function getUserFromDB(username) {
-  console.log(`requesting user info from database for ${username}`);
 
-  const db_url = `https://fc8rbf4rnb.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
-  console.log(db_url);
+    console.log(`requesting user info from database for ${username}`);
+  
+    const db_url = `https://juaqm4a9j6.execute-api.us-east-1.amazonaws.com/dev/users/?username=${username}`;
+    console.log(db_url);
 
-  return axios
-    .get(db_url)
-    .then((res) => {
-      return res.data;
-    })
-    .catch((err) => {
-      console.log('err ' + err);
-      return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
-    });
-}
-
-async function getResultsFromDB(updateTime) {
-  console.log(`requesting results from database for ${updateTime}`);
-
-  const db_url = `https://fc8rbf4rnb.execute-api.us-east-1.amazonaws.com/dev/results/?prUpdateTime=${updateTime}`;
-  console.log(db_url);
-
-  return axios
-    .get(db_url)
-    .then((res) => {
-      return res.data;
-    })
-    .catch((err) => {
-      console.log('err ' + err);
-      return err;
-    });
+    return axios.get(db_url)
+        .then((res) => {
+            return res.data;
+        }).catch((err) => {
+            console.log("err " + err);
+            return 105966689851359954303; // TODO: TA hardcoding ID to see if insertion works
+        });
 }
 
 /*
@@ -169,64 +151,62 @@ function getFileUrls(url) {
 }
 
 // code taken from https://github.com/serverless/examples/blob/master/aws-node-github-webhook-listener/handler.js
-function validateGithubWebhookResponse(event, callback) {
-  var errMsg;
-  const token = process.env.GITHUB_WEBHOOK_SECRET;
-  const headers = event.headers;
-  const sig = headers['X-Hub-Signature'];
-  const githubEvent = headers['X-GitHub-Event'];
-  const id = headers['X-GitHub-Delivery'];
-  const calculatedSig = signRequestBody(token, event.body);
+function validateGithubWebhookResponse(event) {
+    
+    var errMsg;
+    const token = process.env.GITHUB_WEBHOOK_SECRET;
+    const headers = event.headers;
+    const sig = headers['X-Hub-Signature'];
+    const githubEvent = headers['X-GitHub-Event'];
+    const id = headers['X-GitHub-Delivery'];
+    const calculatedSig = signRequestBody(token, event.body);
 
-  if (typeof token !== 'string') {
-    errMsg = "Must provide a 'GITHUB_WEBHOOK_SECRET' env variable";
-    return callback(null, {
-      statusCode: 401,
-      headers: { 'Content-Type': 'text/plain' },
-      body: errMsg,
-    });
-  }
+    if (typeof token !== 'string') {
+        errMsg = 'Must provide a \'GITHUB_WEBHOOK_SECRET\' env variable';
+        return callback(null, {
+            statusCode: 401,
+            headers: { 'Content-Type': 'text/plain' },
+            body: errMsg,
+        });
+    }
 
-  if (!sig) {
-    errMsg = 'No X-Hub-Signature found on request';
-    return callback(null, {
-      statusCode: 401,
-      headers: { 'Content-Type': 'text/plain' },
-      body: errMsg,
-    });
-  }
+    if (!sig) {
+        errMsg = 'No X-Hub-Signature found on request';
+        return callback(null, {
+            statusCode: 401,
+            headers: { 'Content-Type': 'text/plain' },
+            body: errMsg,
+        });
+    }
 
-  if (!githubEvent) {
-    errMsg = 'No X-Github-Event found on request';
-    return callback(null, {
-      statusCode: 422,
-      headers: { 'Content-Type': 'text/plain' },
-      body: errMsg,
-    });
-  }
+    if (!githubEvent) {
+        errMsg = 'No X-Github-Event found on request';
+        return callback(null, {
+            statusCode: 422,
+            headers: { 'Content-Type': 'text/plain' },
+            body: errMsg,
+        });
+    }
 
-  if (!id) {
-    errMsg = 'No X-Github-Delivery found on request';
-    return callback(null, {
-      statusCode: 401,
-      headers: { 'Content-Type': 'text/plain' },
-      body: errMsg,
-    });
-  }
+    if (!id) {
+        errMsg = 'No X-Github-Delivery found on request';
+        return callback(null, {
+            statusCode: 401,
+            headers: { 'Content-Type': 'text/plain' },
+            body: errMsg,
+        });
+    }
 
-  if (sig !== calculatedSig) {
-    errMsg = "X-Hub-Signature incorrect. Github webhook token doesn't match";
-    return callback(null, {
-      statusCode: 401,
-      headers: { 'Content-Type': 'text/plain' },
-      body: errMsg,
-    });
-  }
+    if (sig !== calculatedSig) {
+        errMsg = 'X-Hub-Signature incorrect. Github webhook token doesn\'t match';
+        return callback(null, {
+            statusCode: 401,
+            headers: { 'Content-Type': 'text/plain' },
+            body: errMsg,
+        });
+    }
 }
 
 function signRequestBody(key, body) {
-  return `sha1=${crypto
-    .createHmac('sha1', key)
-    .update(body, 'utf-8')
-    .digest('hex')}`;
+    return `sha1=${crypto.createHmac('sha1', key).update(body, 'utf-8').digest('hex')}`;
 }
