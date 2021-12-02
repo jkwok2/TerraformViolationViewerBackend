@@ -9,7 +9,7 @@ const ses = new aws.SES({ region: "us-east-1" });
 
 module.exports.emailSender = async function (event) {
 
-  console.log("start of emailSEnder");
+  console.log("start of emailSender");
   let name
   let statVal
   let errCount
@@ -69,7 +69,7 @@ module.exports.emailSender = async function (event) {
   // console.log("address: " + address);
 
   let params = {
-    Source: "Group 4 <cpsc319fall2021@gmail.com>",
+    Source: "process.env.SOURCE_NAME <process.env.SOURCE_EMAIL_ADDRESS>",
     Template: temp,
     Destination: {
       ToAddresses: [address]
@@ -78,7 +78,11 @@ module.exports.emailSender = async function (event) {
   };
   console.log("sending email..");
   console.log("address: " + address);
-  return ses.sendTemplatedEmail(params).promise()
+
+  ses.sendTemplatedEmail(params, function (err, data) {
+    if (err) console.log(err, err.stack);
+    else console.log(data);
+  })
 };
 
 async function getEmailFromDB(username) {
