@@ -19,7 +19,10 @@
     "yaml": "^1.10.2"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "setUpTemplate": "aws ses create-template --cli-input-json file://scannedTemplateUpload.json && aws ses create-template --cli-input-json file://errorTemplatedUpload.json",
+    "testEmail": "aws ses send-templated-email --cli-input-json file://sendEmailManual.json",
+    "deployPackaged": "serverless deploy --package /.serverless"
   },
   "repository": {
     "type": "git",
