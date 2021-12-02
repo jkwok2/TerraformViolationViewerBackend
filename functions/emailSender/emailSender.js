@@ -69,7 +69,7 @@ module.exports.emailSender = async function (event) {
   // console.log("address: " + address);
 
   let params = {
-    Source: "Group 4 <cpsc319fall2021@gmail.com>",
+    Source: process.env.SOURCE_ADDRESS,
     Template: temp,
     Destination: {
       ToAddresses: [address]

@@ -41,6 +41,7 @@ provider:
     efsAccessPoint: fsap-099d31199150da4f8
     # LocalMountPath: /efs
     EFS_MOUNT_PATH: ${self:custom.efsMountPath}
+    SOURCE_ADDRESS: "Group 4 <cpsc319fall2021@gmail.com>"
 
   # you can add statements to the Lambda function's IAM Role here
   # iamRoleStatements:
