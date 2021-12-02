@@ -3,10 +3,8 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const aws = require('aws-sdk');
-const fs = require('fs');
 
 const invokeLambda = require('functions/utilities/invokeLambda.js');
-const path = require('path');
 
 aws.config.region = process.region;
 var lambda = new aws.Lambda();
@@ -54,10 +52,8 @@ module.exports.webhook = async (event, context, callback) => {
   const user = await getUserFromDB(pullRequest.username);
   console.log('user ' + JSON.stringify(user));
 
-  let promiseArray = [];
   files.forEach((f) =>
-    promiseArray.push(
-      invokeLambda(parseFileLambdaName, {
+    invokeLambda(parseFileLambdaName, {
         fileName: f.name,
         content: f.content,
         path: f.path,
@@ -68,41 +64,41 @@ module.exports.webhook = async (event, context, callback) => {
         repoName: pullRequest.repo,
         prDate: pullRequest.timestamp,
       })
-    )
   );
 
+  console.log("files sent to parseLambda");
   // wait for all parseFileLambdas to return
-  await Promise.all(promiseArray);
+
   // check database for results
-  let tries = 0;
-  let results = 0;
-  const prUpdateTime = new Date(pullRequest.timestamp).toISOString();
-  console.log("prUpdateTime: " + prUpdateTime);
-  while (tries < 2) {
-    setInterval(function() {}, 1000);
-
-    results = getResultsFromDB(prUpdateTime);
-    // checking if we have all the results
-    if (results.length == files.length) {
-      break;
-    }
-    tries++;
-  }
-
-  console.log(`results: ${results}`);
-
-  let numViolations = 0;
-  let statVal = 'success';
-
-  let emailPayload = {
-    name: user.givenName, // name of recipient
-    address: user.email,
-    statVal: statVal, // pass/fail/error
-    errCount: numViolations, // number of violations
-    repoName: pullRequest.repo, // name of pr repo
-  };
-
-  invokeLambda(emailLambdaName, emailPayload, 'Event');
+  // let tries = 0;
+  // let results = 0;
+  // const prUpdateTime = new Date(pullRequest.timestamp).toISOString();
+  // console.log("prUpdateTime: " + prUpdateTime);
+  // while (tries < 2) {
+  //   setInterval(function() {}, 1000);
+  //
+  //   results = getResultsFromDB(prUpdateTime);
+  //   // checking if we have all the results
+  //   if (results.length == files.length) {
+  //     break;
+  //   }
+  //   tries++;
+  // }
+  //
+  // console.log(`results: ${results}`);
+  //
+  // let numViolations = 0;
+  // let statVal = 'success';
+  //
+  // let emailPayload = {
+  //   name: user.givenName, // name of recipient
+  //   address: user.email,
+  //   statVal: statVal, // pass/fail/error
+  //   errCount: numViolations, // number of violations
+  //   repoName: pullRequest.repo, // name of pr repo
+  // };
+  //
+  // invokeLambda(emailLambdaName, emailPayload, 'Event');
 
   return callback(null, response);
 };

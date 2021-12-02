@@ -1,5 +1,4 @@
 var aws = require('aws-sdk');
-const fs = require('fs');
 const hcltojson = require('hcl-to-json');
 const {
   InvalidTerraformFileError,
@@ -11,9 +10,10 @@ const connection = require('./routes/common');
 const YAML = require('yaml');
 const axios = require('axios');
 
-//const invokeLambda = require('functions/utilities/invokeLambda.js');
+const invokeLambda = require('functions/utilities/invokeLambda.js');
 // const writeFileLambdaName = 'hsbc-backend-app-meg-dev-writeFile';
-const emailLambdaName = 'hsbc-backend-app-meg-dev-emailSender';
+const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
+const saveViolationsLambdaName = 'hsbc-backend-app-dev-saveViolations';
 
 aws.config.region = process.region;
 //const spawn = require('child_process').spawn;
@@ -579,9 +579,12 @@ module.exports.parseFile = async (event, context, callback) => {
             let vResult;
             if (violations.length > 0) {
               //await sendViolationsToDB(violations);
+              invokeLambda(saveViolationsLambdaName, {violations: violations});
+              console.log("violations sent to lambda, done")
             } else {
               console.log('no violations found');
             }
+
 
             const numViolations = violations.length;
             // status: 0 = success, 1 = violations found, 2 = error

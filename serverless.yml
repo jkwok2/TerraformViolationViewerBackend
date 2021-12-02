@@ -81,6 +81,8 @@ functions:
       arn: !GetAtt AccessPointResource.Arn
     timeout: 100
     maximumRetryAttempts: 0
+  saveViolations:
+    handler: functions/saveViolations.saveViolations
   monitor:
     handler: functions/monitor.monitor
     fileSystemConfig:

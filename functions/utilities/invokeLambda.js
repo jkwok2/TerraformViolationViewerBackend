@@ -8,7 +8,7 @@ var lambda = new aws.Lambda();
 *   Invoke lambda asynchronously with no response expected
 *   payload is JSON object specific to lambda
 *   lambdaName is longform name from deployed lambda function. 
-*       Example: hsbc-backend-app-meg-dev-webhook
+*       Example: hsbc-backend-app-dev-webhook
 */
 const invokeLambda = (lambdaName, payload) => {
 
@@ -19,21 +19,21 @@ const invokeLambda = (lambdaName, payload) => {
         Payload : JSON.stringify(payload) // The payload sent to the function
     };
 
-    // return lambda.invoke(params, function(err, data) {
-    //     if (err) {
-    //         console.log(`Error when invoking ${params.FunctionName}`);
-    //         throw err;
-    //     }
-    //     console.log(`${params.FunctionName} invoked`)
-    //     if (data) {
-    //         console.log(`${params.FunctionName} invoked`)
-    //         console.log(data);
-    //         console.log(data.Payload);
-    //         return data.Payload;
-    //     }
-    //   }).promise();
+    console.log(`Invoking ${lambdaName}`);
 
-    return lambda.invoke(params).promise();
+    return lambda.invoke(params, function(err, data) {
+        if (err) {
+            console.log(`Error when invoking ${params.FunctionName}`);
+            throw err;
+        }
+        console.log(`${params.FunctionName} invoked`)
+        if (data) {
+            console.log(`${params.FunctionName} invoked`)
+            console.log(data);
+            console.log(data.Payload);
+            return data.Payload;
+        }
+      }).promise();
 };
 
 module.exports = invokeLambda;
