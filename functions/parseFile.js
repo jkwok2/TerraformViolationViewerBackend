@@ -2,7 +2,7 @@ var aws = require('aws-sdk');
 const hcltojson = require('hcl-to-json');
 const YAML = require('yaml');
 
-const invokeLambda = require('functions/utilities/invokeLambda.js');
+const invokeLambda = require('../functions/utilities/invokeLambda.js');
 const emailLambdaName = 'hsbc-backend-app-dev-emailSender';
 const saveViolationsLambdaName = 'hsbc-backend-app-dev-saveViolations';
 
@@ -16,9 +16,6 @@ const connection = require('serverless-mysql')({
 });
 
 aws.config.region = process.region;
-
-const {exec} = require('child_process');
-const { parseFile } = require('aws-sdk/lib/shared-ini/ini-loader');
 let violationsFound;
 let errorsEncountered;
 const file = {
@@ -40,92 +37,31 @@ function mapRulesToYAMLContent(data) {
   });
 }
 
-function setValue(result) {
-  return mapRulesToYAMLContent(result);
-}
-
-
-const grepWithShell = (grepSearch, filePath) => {
-  return new Promise((resolve, reject) => {
-
-    let res = '';
-    const child = exec(`grep -n ${grepSearch} ${filePath}`); // exec('grep', ['-n', grepSearch, filePath]);
-    child.on('error', (err) => {
-      resolve(res)
-    });
-    child.stdout.on('error', (err) => {
-      resolve(res)
-    });
-    child.stdout.on('data', function (buffer) {
-      res += buffer.toString();
-    });
-    child.stdout.on('end', function () {
-      if (res === '') {
-        res = 'err: could not find property or value in file'
-      }
-      resolve(res)
-    });
-  });
-};
-
-const setLineNumber = (violation) => {
-    console.log(`Looking for line number for: ${JSON.stringify(violation)}`);
-    const searchString = `resource "${violation.resourceType}" "${violation.resourceName}"`; //best if we can support regex
-    const fileChunks = file.content.split(searchString);
-    violation.lineNumber = fileChunks[0].split("\n").length;
-    console.log(`violation changed: ${JSON.stringify(violation)}`);
-}
-
-// const getLineNumber = (data) => {
-//   //TODO: TA --- I think this is the same problem as Seven of Spades promise.chain hell
-//   //not sure what the issue is, returning -2;
-//   data.lineNumber = -2;
-//   return;
-
-//   const grepSearch = `${data.resourceType}`;
-//   return new Promise((resolve, reject) => {
-//     grepWithShell(grepSearch, data.filePath).then((lines) => {
-//       try {
-//         if (lines === "") {
-//           data.lineNumber = -1;
-//         }
-//         const lineNumber = lines.split(":")[0];
-//         console.log(`lineNumber: ${lineNumber}`);
-//         data.lineNumber = Number(lineNumber);
-//         delete data.resourceType;
-//         delete data.resourceName;
-//       } catch (e) {
-//         // TODO: TA - not sure about what is a grep error. I will just put line number -1
-//         data.lineNumber = -1;
-//         delete data.resourceTypel;
-//         delete data.resourceName;
-//       }
-//       resolve(data);
-//     }).catch((err) => {
-//       delete data.resourceType;
-//       delete data.resourceName;
-//       resolve(data);
-//     })
-//   });
-
-// }
-
-const hasProperty = async (resource, propertyKey) => {
-  propertyKey.split(".").forEach(p => {
-    if (resource.hasOwnProperty(p)) {
-      resource = resource[p];
-    } else {
-      return false;
+const getLineNumber = (resourceType, resourceName) => {
+    const searchString = `resource "${resourceType}" "${resourceName}"`;
+    if (!file.content.includes(searchString)) {
+        return -1;
     }
-  });
-  return true;
+    const fileChunks = file.content.split(searchString);
+    return fileChunks[0].split("\n").length;
+}
+
+const hasProperty = async(resource, propertyKey) => {
+    for (const p of propertyKey.split(".")) {
+        if (resource.hasOwnProperty(p)) {
+            resource = resource[p];
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
 const getPropertyValue = async (resource, propertyKey) => {
-  propertyKey.split(".").forEach(p => {
-    resource = resource[p];
-  });
-  return resource;
+    for (const p of propertyKey.split(".")) {
+        resource = resource[p];
+    }
+    return resource;
 }
 
 const addError = async (e) => {
@@ -139,11 +75,11 @@ const addViolation = async (violationRule, resourceType, resourceName, filePath,
   console.log(`Inside addViolation with violationRule: ${JSON.stringify(violationRule)}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
   console.log(JSON.stringify(rulesObject));
   try {
-    //const lineNumber = await getLineNumber(resourceType, resourceName, filePath);
+    const lineNumber = getLineNumber(resourceType, resourceName);
     const violation = {
       violationRuleId: rulesObject.ruleId,
       filePath: filePath,
-      lineNumber: -1,
+      lineNumber: lineNumber,
       dateFound: Date.now(),
       resourceType: resourceType,
       resourceName: resourceName
@@ -240,10 +176,7 @@ const hasList = async (resourceType, resourceName, hasViolationRules, resource, 
 
 const processResource = async (resource, violationRules, resourceType, resourceName, filePath) => {
 
-  // TODO: TA - minor fix from the entire rules object to actually just its content?
   let rulesObject = violationRules.content
-
-  // need rulesObject for ruleId for any violations found
   if (typeof rulesObject !== "undefined") {
     if (rulesObject.hasOwnProperty('has')) {
       hasList(resourceType, resourceName, rulesObject.has, resource, filePath, violationRules);
@@ -269,7 +202,6 @@ module.exports.parseFile = async (event, context, callback) => {
   const repo = event.repoName;
   const prDate = event.prDate;
 
-  // getFile(filePath, filename, githubFullPath);
   console.log(`start reading file ${filename}`);
   console.log(`start reading file ${filePath}`);
 
@@ -321,9 +253,6 @@ module.exports.parseFile = async (event, context, callback) => {
           const resourceNames = Object.keys(resources);
 
           for (const rn of resourceNames) {
-            // TODO: TA - another type casting. This right now, violationRulesByResourceType is a RowDataPacket, better have it as a plain object (for now), hence why I call JSON.parse
-            //figure out why this is broken
-            // should be Promise.allSettled
             console.log('rn: ' + rn);
             pThreads.push(
               await processResource(
@@ -334,7 +263,7 @@ module.exports.parseFile = async (event, context, callback) => {
                 filePath
               )
             );
-            console.log(`set thread to process of ${rn}`); // TODO: TA - nit, it s a promise, might not be finished at this point in time. I really don't like promises :~~
+            console.log(`set thread to process of ${rn}`);
           }
         }
       }
@@ -345,79 +274,72 @@ module.exports.parseFile = async (event, context, callback) => {
       });
     }
 
-    //await connection.quit();
-
     Promise.all(pThreads)
       .then(async () => {
-        for (const viol of violationsFound) {
-          setLineNumber(viol);
-        }
-            console.log(`${file.path}: Scanning complete`);
 
-            const result = {
-              errors: errorsEncountered,
-              violations: violationsFound,
+        console.log(`${file.path}: Scanning complete`);
+
+        const result = {
+            errors: errorsEncountered,
+            violations: violationsFound,
+        };
+
+        console.log(`${file.path}: Result: ${JSON.stringify(result)}`);
+
+        let violations = [];
+        let prCreated = new Date(prDate);
+        prCreated = prCreated.toISOString();
+
+        for (const violationData of result.violations) {
+
+            let violationFound = new Date(violationData.dateFound);
+            violationFound = violationFound.toISOString();
+
+            const dbData = {
+            userId: userId,
+            repoId: repo,
+            prId: prID.toString(),
+            filePath: file.path,
+            lineNumber: violationData.lineNumber,
+            ruleId: violationData.violationRuleId,
+            prTime: prCreated,
+            dateFound: violationFound,
             };
 
-            console.log(`${file.path}: Result: ${JSON.stringify(result)}`);
+            violations.push(dbData);
+        }
 
-            let violations = [];
-            let prCreated = new Date(prDate);
-            prCreated = prCreated.toISOString();
-
-            for (const violationData of result.violations) {
-
-              let violationFound = new Date(violationData.dateFound);
-              violationFound = violationFound.toISOString();
-
-              const dbData = {
-                userId: userId,
-                repoId: repo,
-                prId: prID.toString(),
-                filePath: file.path,
-                lineNumber: violationData.lineNumber,
-                ruleId: violationData.violationRuleId,
-                prTime: prCreated,
-                dateFound: violationFound,
-              };
-
-              violations.push(dbData);
-            }
-
-            let statVal = 'success';
-            if (violations.length > 0) {
-              console.log(`${file.path}: ${violations.length} violations found`);
-              invokeLambda(saveViolationsLambdaName, {
+        let statVal = 'success';
+        if (violations.length > 0) {
+            console.log(`${file.path}: ${violations.length} violations found`);
+            invokeLambda(saveViolationsLambdaName, {
                 violations: violations,
                 filename: filename,
                 path: filePath,
-                dbConnection: connection
-              });
-              console.log(`${file.path}: violations sent to saveViolations lambda`);
-              statVal = 'fail';
-            } else {
-              console.log(`${file.path}: no violations found.`);
-            }
+            });
+            console.log(`${file.path}: violations sent to saveViolations lambda`);
+            statVal = 'fail';
+        } else {
+            console.log(`${file.path}: no violations found.`);
+        }
 
-            let emailPayload = {
-              name: event.username, // name of recipient
-              email: event.email,
-              statVal: statVal, // pass/fail/error
-              numViolations: violations.length, // number of violations
-              repoName: repo, // name of pr repo
-            };
+        let emailPayload = {
+            name: event.username, // name of recipient
+            email: event.email,
+            statVal: statVal, // pass/fail/error
+            numViolations: violations.length, // number of violations
+            repoName: repo, // name of pr repo
+        };
 
-            invokeLambda(emailLambdaName, emailPayload);
+        invokeLambda(emailLambdaName, emailPayload);
 
-            console.log(`${file.path}: Finished`);
-            return;
+        console.log(`${file.path}: Finished`);
+        return;
       })
       .catch((err) => {
-        // TODO: TA - need to throw some error response with bad request here?
         throw err;
       });
   } catch (err) {
-    //const invalidTerraformFileError = new InvalidTerraformFileError(file.githubFullPath, e);
     console.error(`${file.path}: ${err}`);
     addError('invalidTerraformFileError');
   } finally {
@@ -452,10 +374,7 @@ module.exports.parseFile = async (event, context, callback) => {
 //
 // parseFile(event, undefined, undefined);
 
-// remove module.exports in front of parseFile
-// change TerraformFile = Buffer(.,m) to terraformFile = tempFile that points to
-
-module.exports.setLineNumber = setLineNumber;
+module.exports.getLineNumber = getLineNumber;
 module.exports.hasProperty = hasProperty;
 module.exports.getPropertyValue = getPropertyValue;
 module.exports.setFile = setFile;

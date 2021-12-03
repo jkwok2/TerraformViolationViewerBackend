@@ -66,15 +66,7 @@ describe ('parseFile getLineNumber', () => {
             resourceType: "aws-lambda",
             resourceName: "example"
         };
-        parseFile.setLineNumber(violation);
-        expect(violation).toEqual({
-            violationRuleId: 1,
-            filePath: "a/path.tf",
-            lineNumber: 1,
-            dateFound: "a date",
-            resourceType: "aws-lambda",
-            resourceName: "example"
-        });
+        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName)).toBe(1);
     });
 
     it ('simple get resource from file', () => {
@@ -86,15 +78,7 @@ describe ('parseFile getLineNumber', () => {
             resourceType: "aws-dynamodb",
             resourceName: "example2"
         };
-        parseFile.setLineNumber(violation);
-        expect(violation).toEqual({
-            violationRuleId: 1,
-            filePath: "a/path.tf",
-            lineNumber: 3,
-            dateFound: "a date",
-            resourceType: "aws-dynamodb",
-            resourceName: "example2"
-        });
+        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName)).toBe(3);
     });
 
     it ('resource does not exist in file', () => {
@@ -106,14 +90,6 @@ describe ('parseFile getLineNumber', () => {
             resourceType: "aws-not-exist",
             resourceName: "example2"
         };
-        parseFile.setLineNumber(violation);
-        expect(violation).toEqual({
-            violationRuleId: 1,
-            filePath: "a/path.tf",
-            lineNumber: -1,
-            dateFound: "a date",
-            resourceType: "aws-not-exist",
-            resourceName: "example2"
-        });
-    })
+        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName)).toBe(-1);
+    });
 });
