@@ -28,9 +28,9 @@ const invokeLambda = (lambdaName, payload) => {
         }
         console.log(`${params.FunctionName} invoked`)
         if (data) {
-            // console.log(`${params.FunctionName} invoked`)
-            // console.log(data);
-            // console.log(data.Payload);
+            console.log(`${params.FunctionName} invoked`)
+            console.log(data);
+            console.log(data.Payload);
             return data.Payload;
         }
       }).promise();

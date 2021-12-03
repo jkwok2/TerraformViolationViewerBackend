@@ -1,6 +1,5 @@
 var aws = require('aws-sdk');
 const hcltojson = require('hcl-to-json');
-const {InvalidTerraformFileError, LineNumberNotFoundError, GrepError} = require('./additionalViolationErrors');
 const YAML = require('yaml');
 
 const invokeLambda = require('functions/utilities/invokeLambda.js');
@@ -19,12 +18,19 @@ const connection = require('serverless-mysql')({
 aws.config.region = process.region;
 
 const {exec} = require('child_process');
+const { parseFile } = require('aws-sdk/lib/shared-ini/ini-loader');
 let violationsFound;
 let errorsEncountered;
 const file = {
   content: '',
   path: '',
 };
+
+const setFile = async(content, path) => {
+    file.content = content;
+    file.path = path;
+    Object.freeze(file);
+}
 
 function mapRulesToYAMLContent(data) {
   return data.map((x) => {
@@ -62,39 +68,47 @@ const grepWithShell = (grepSearch, filePath) => {
   });
 };
 
-const getLineNumber = (data) => {
-  //TODO: TA --- I think this is the same problem as Seven of Spades promise.chain hell
-  //not sure what the issue is, returning -2;
-  data.lineNumber = -2;
-  return;
-
-  const grepSearch = `${data.resourceType}`;
-  return new Promise((resolve, reject) => {
-    grepWithShell(grepSearch, data.filePath).then((lines) => {
-      try {
-        if (lines === "") {
-          data.lineNumber = -1;
-        }
-        const lineNumber = lines.split(":")[0];
-        console.log(`lineNumber: ${lineNumber}`);
-        data.lineNumber = Number(lineNumber);
-        delete data.resourceType;
-        delete data.resourceName;
-      } catch (e) {
-        // TODO: TA - not sure about what is a grep error. I will just put line number -1
-        data.lineNumber = -1;
-        delete data.resourceTypel;
-        delete data.resourceName;
-      }
-      resolve(data);
-    }).catch((err) => {
-      delete data.resourceType;
-      delete data.resourceName;
-      resolve(data);
-    })
-  });
-
+const setLineNumber = (violation) => {
+    console.log(`Looking for line number for: ${JSON.stringify(violation)}`);
+    const searchString = `resource "${violation.resourceType}" "${violation.resourceName}"`; //best if we can support regex
+    const fileChunks = file.content.split(searchString);
+    violation.lineNumber = fileChunks[0].split("\n").length;
+    console.log(`violation changed: ${JSON.stringify(violation)}`);
 }
+
+// const getLineNumber = (data) => {
+//   //TODO: TA --- I think this is the same problem as Seven of Spades promise.chain hell
+//   //not sure what the issue is, returning -2;
+//   data.lineNumber = -2;
+//   return;
+
+//   const grepSearch = `${data.resourceType}`;
+//   return new Promise((resolve, reject) => {
+//     grepWithShell(grepSearch, data.filePath).then((lines) => {
+//       try {
+//         if (lines === "") {
+//           data.lineNumber = -1;
+//         }
+//         const lineNumber = lines.split(":")[0];
+//         console.log(`lineNumber: ${lineNumber}`);
+//         data.lineNumber = Number(lineNumber);
+//         delete data.resourceType;
+//         delete data.resourceName;
+//       } catch (e) {
+//         // TODO: TA - not sure about what is a grep error. I will just put line number -1
+//         data.lineNumber = -1;
+//         delete data.resourceTypel;
+//         delete data.resourceName;
+//       }
+//       resolve(data);
+//     }).catch((err) => {
+//       delete data.resourceType;
+//       delete data.resourceName;
+//       resolve(data);
+//     })
+//   });
+
+// }
 
 const hasProperty = async (resource, propertyKey) => {
   propertyKey.split(".").forEach(p => {
@@ -260,9 +274,7 @@ module.exports.parseFile = async (event, context, callback) => {
   console.log(`start reading file ${filePath}`);
 
   const terraformFile = Buffer.from(event.content, 'base64').toString('ascii');
-  file.content = terraformFile;
-  file.path = event.path;
-  Object.freeze(file);
+  setFile(terraformFile, event.path);
 
   const responseComplete = {
     statusCode: 200,
@@ -337,15 +349,9 @@ module.exports.parseFile = async (event, context, callback) => {
 
     Promise.all(pThreads)
       .then(async () => {
-        let vThreads = [];
         for (const viol of violationsFound) {
-          vThreads.push(getLineNumber(viol));
+          setLineNumber(viol);
         }
-
-        console.log("about to get line numbers... avoiding chain promise hell...")
-
-        Promise.all(vThreads)
-          .then(async (violationLst) => {
             console.log(`${file.path}: Scanning complete`);
 
             const result = {
@@ -405,11 +411,6 @@ module.exports.parseFile = async (event, context, callback) => {
 
             console.log(`${file.path}: Finished`);
             return;
-          })
-          .catch((err) => {
-            // TODO: TA - need to throw some error response with bad request here?
-            throw err;
-          });
       })
       .catch((err) => {
         // TODO: TA - need to throw some error response with bad request here?
@@ -453,3 +454,8 @@ module.exports.parseFile = async (event, context, callback) => {
 
 // remove module.exports in front of parseFile
 // change TerraformFile = Buffer(.,m) to terraformFile = tempFile that points to
+
+module.exports.setLineNumber = setLineNumber;
+module.exports.hasProperty = hasProperty;
+module.exports.getPropertyValue = getPropertyValue;
+module.exports.setFile = setFile;
