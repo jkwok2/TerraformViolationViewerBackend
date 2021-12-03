@@ -21,7 +21,8 @@
   },
   "scripts": {
     "test": "jest",
-    "setUpTemplate": "aws ses create-template --cli-input-json file://scannedTemplateUpload.json && aws ses create-template --cli-input-json file://errorTemplatedUpload.json",
+    "setUpTemplate": "aws ses create-template --cli-input-json file://scannedTemplateUpload.json && aws ses create-template --cli-input-json file://errorTemplateUpload.json",
+    "updateTemplate": "aws ses update-template --cli-input-json file://scannedTemplateUpload.json && aws ses update-template --cli-input-json file://errorTemplateUpload.json",
     "testEmail": "aws ses send-templated-email --cli-input-json file://sendEmailManual.json"
   },
   "repository": {

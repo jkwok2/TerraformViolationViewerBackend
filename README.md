@@ -35,6 +35,11 @@ The backend installation instructions should be completed in the following order
 **Note: This is part of the setup process. Refer to the Email Setup Instructions documentations.**\
 Uploads email templates to your specified AWS account.
 
+### `yarn updateTemplate`
+
+Used to update email templates after they have been set up.\
+Make sure to have made correct changes to both the email templates and the upload json before using this.
+
 ### `yarn TestEmail`
 
 **IMPORTANT: Before using this, modify the sendEmailManual.json file and change both the source and to address to the one you specified in the .env file**\
