@@ -9,7 +9,7 @@ module.exports.emailSender = async function (event) {
 
   let name;
   let statVal;
-  let numViolations;
+  let errCount;
   let address;
   let repoName;
 
@@ -22,13 +22,13 @@ module.exports.emailSender = async function (event) {
 
   (event.name) ? name = event.name : ""; // if no name, leave blank
   (event.statVal) ? statVal = event.statVal : "error";
-  (event.numViolations) ? numViolations = event.numViolations : 0;
+  (event.numViolations) ? errCount = event.numViolations : -1;
   (event.repoName) ? repoName = event.repoName : 'Error: Repo Name Not Found';
 
   console.log("email sender lambda");
   console.log("name: " + name);
   console.log("statVal: " + statVal);
-  console.log("numViolations: " + numViolations);
+  console.log("numViolations: " + errCount);
   console.log("repoName: " + repoName);
   console.log("email: " + address);
 
@@ -38,11 +38,11 @@ module.exports.emailSender = async function (event) {
   switch (statVal){
     case "pass":
       temp = "scannedTemplate";
-      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"numViolations\":\"").concat("no").concat("\" }");
+      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat("no").concat("\" }");
       break;
     case "fail":
       temp = "scannedTemplate";
-      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"numViolations\":\"").concat(numViolations).concat("\" }");
+      tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat(errCount).concat("\" }");
       break;
     case "error":
       temp = "errorTemplate";
