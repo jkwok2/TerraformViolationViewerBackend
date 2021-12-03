@@ -74,5 +74,3 @@ module.exports.emailSender = async function (event) {
 // };
 //
 // emailSender(event);
-
-
