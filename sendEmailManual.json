@@ -1,8 +1,8 @@
 {
-  "Source": "SourceName <someAddress@gmail.com>",
+  "Source": "SourceName <cpsc319fall2021@gmail.com>",
   "Template": "scannedTemplate",
   "Destination": {
-    "ToAddresses": ["someAddress@gmail.com"]
+    "ToAddresses": ["megthibodeau@gmail.com@gmail.com"]
   },
-  "TemplateData": "{ \"name\":\"someName\", \"repoName\":\"someRepo\", \"errCount\":\"42\"}"
+  "TemplateData": "{ \"name\":\"someName\", \"repoName\":\"Group4Test\", \"errCount\":\"42\"}"
 }
