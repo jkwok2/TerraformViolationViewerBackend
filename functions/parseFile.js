@@ -199,7 +199,7 @@ const processResource = (resource, violationRules, resourceType, resourceName, f
 }
 
 module.exports.parseFile = async (event, context, callback) => {
-  console.log(`Version 7`);
+  // console.log(`Version 7`);
   violationsFound = [];
   errorsEncountered = [];
 
