@@ -65,7 +65,7 @@ rulesAPI.patch(
   }
 );
 
-rulesAPI.post('/addRule', upload.any(), async (req, res) => {
+rulesAPI.post('/rules', upload.any(), async (req, res) => {
   console.log(req);
   // const con = connection();
   for (let data of req.files) {
@@ -117,11 +117,11 @@ rulesAPI.post('/addRule', upload.any(), async (req, res) => {
       // console.log(hasSet.has(yamlData.has))
       if (yamlData.has !== undefined && hasSet.has(JSON.stringify(yamlData.has))) {
         await connection.quit();
-        return res.status(500).send('there is a dup');
+        return res.status(400).send('there is a dup');
       }
       if (yamlData.has_not !== undefined && notHasSet.has(JSON.stringify(yamlData.has_not))) {
         await connection.quit();
-        return res.status(500).send('there is a dupe');
+        return res.status(400).send('there is a dupe');
       }
     } catch (err) {
       console.log({ err });
