@@ -23,7 +23,7 @@ const file = {
   path: '',
 };
 
-const setFile = async(content, path) => {
+const setFile = (content, path) => {
     file.content = content;
     file.path = path;
     Object.freeze(file);
@@ -38,15 +38,19 @@ function mapRulesToYAMLContent(data) {
 }
 
 const getLineNumber = (resourceType, resourceName) => {
-    const searchString = `resource "${resourceType}" "${resourceName}"`;
-    if (!file.content.includes(searchString)) {
-        return -1;
-    }
-    const fileChunks = file.content.split(searchString);
-    return fileChunks[0].split("\n").length;
+  const regexString = `resource\\s+("${resourceType}"|'${resourceType}')\\s+("${resourceName}"|'${resourceName}')`;
+  const regex = new RegExp(regexString, 'g');
+  const searchString = file.content.match(regex);
+  console.log(regexString);
+  console.log(file.content);
+  console.log(searchString);
+  if (searchString === undefined || searchString === null || searchString.length < 1) return -1;
+  const fileChunks = file.content.split(searchString[0]);
+  return fileChunks[0].split("\n").length;
 }
 
-const hasProperty = async(resource, propertyKey) => {
+const hasProperty = (resource, propertyKey) => {
+    if (resource === undefined || resource === null || JSON.stringify(resource) === '{}' || JSON.stringify(resource) === '') return false;
     for (const p of propertyKey.split(".")) {
         if (resource.hasOwnProperty(p)) {
             resource = resource[p];
@@ -57,21 +61,21 @@ const hasProperty = async(resource, propertyKey) => {
     return true;
 }
 
-const getPropertyValue = async (resource, propertyKey) => {
+const getPropertyValue = (resource, propertyKey) => {
     for (const p of propertyKey.split(".")) {
         resource = resource[p];
     }
     return resource;
 }
 
-const addError = async (e) => {
+const addError = (e) => {
   errorsEncountered.push(e);
   console.log(`Error encountered at ${file.path}: ${JSON.stringify(e)}`);
   throw e;
 }
 
 
-const addViolation = async (violationRule, resourceType, resourceName, filePath, rulesObject) => {
+const addViolation = (violationRule, resourceType, resourceName, filePath, rulesObject) => {
   console.log(`Inside addViolation with violationRule: ${JSON.stringify(violationRule)}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
   console.log(JSON.stringify(rulesObject));
   try {
@@ -94,7 +98,7 @@ const addViolation = async (violationRule, resourceType, resourceName, filePath,
 }
 
 // has no key, has no value at key, has no value in range at key
-const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, resource, filePath, rulesObject) => {
+const hasNotSingle = (resourceType, resourceName, hasNotViolationRule, resource, filePath, rulesObject) => {
   // check if violation rule is properly formatted, if not ignore rule
   if (!hasProperty(hasNotViolationRule, "key")) return;
   try {
@@ -124,14 +128,17 @@ const hasNotSingle = async (resourceType, resourceName, hasNotViolationRule, res
 }
 
 // has key, has key value, has key value in range
-const hasSingle = async (resourceType, resourceName, hasViolationRule, resource, filePath, rulesObject) => {
+const hasSingle = (resourceType, resourceName, hasViolationRule, resource, filePath, rulesObject) => {
   // check if violation rule is properly formatted, if not ignore rule
   console.log(`In hasSingle with resourceType: ${resourceType}, resourceName: ${resourceName}, hasViolationRule: ${JSON.stringify(hasViolationRule)}, resource: ${resource}`);
+  console.log(resource);
   if (!hasProperty(hasViolationRule, "key")) return;
   console.log(`rule has key for ${resourceName}`);
   try {
     // check if key is in resource
+    console.log(`hasProperty(${JSON.toString({resource})}, ${hasViolationRule.key}): ${hasProperty(resource, hasViolationRule.key)}`)
     if (!hasProperty(resource, hasViolationRule.key)) {
+      //console.log(`has single !hasProperty: ${hasViolationRule.key}`);
       addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
       console.log(`Property is missing for ${resourceName}`);
       return;
@@ -162,19 +169,19 @@ const hasSingle = async (resourceType, resourceName, hasViolationRule, resource,
 }
 
 
-const hasNotList = async (resourceType, resourceName, hasNotViolationRules, resource, filePath, rulesObject) => {
+const hasNotList = (resourceType, resourceName, hasNotViolationRules, resource, filePath, rulesObject) => {
   hasNotViolationRules.forEach(r => {
     hasNotSingle(resourceType, resourceName, r, resource, filePath, rulesObject);
   })
 }
 
-const hasList = async (resourceType, resourceName, hasViolationRules, resource, filePath, rulesObject) => {
+const hasList = (resourceType, resourceName, hasViolationRules, resource, filePath, rulesObject) => {
   hasViolationRules.forEach(r => {
     hasSingle(resourceType, resourceName, r, resource, filePath, rulesObject);
   });
 }
 
-const processResource = async (resource, violationRules, resourceType, resourceName, filePath) => {
+const processResource = (resource, violationRules, resourceType, resourceName, filePath) => {
 
   let rulesObject = violationRules.content
   if (typeof rulesObject !== "undefined") {
@@ -192,6 +199,7 @@ const processResource = async (resource, violationRules, resourceType, resourceN
 }
 
 module.exports.parseFile = async (event, context, callback) => {
+  console.log(`Version 7`);
   violationsFound = [];
   errorsEncountered = [];
 
@@ -202,8 +210,8 @@ module.exports.parseFile = async (event, context, callback) => {
   const repo = event.repoName;
   const prDate = event.prDate;
 
-  console.log(`start reading file ${filename}`);
-  console.log(`start reading file ${filePath}`);
+  // console.log(`start reading file ${filename}`);
+  // console.log(`start reading file ${filePath}`);
 
   const terraformFile = Buffer.from(event.content, 'base64').toString('ascii');
   setFile(terraformFile, event.path);
@@ -219,9 +227,9 @@ module.exports.parseFile = async (event, context, callback) => {
       `Terraform file ${filename} parsed successfully as ${JSON.stringify(parsedTerraformFile)}`
     );
 
-    console.log(
-      `Are there resources? ${parsedTerraformFile.hasOwnProperty('resource')}`
-    );
+    // console.log(
+    //   `Are there resources? ${parsedTerraformFile.hasOwnProperty('resource')}`
+    // );
     if (!parsedTerraformFile.hasOwnProperty('resource')) {
       return callback(null, responseComplete);
     }
@@ -234,12 +242,12 @@ module.exports.parseFile = async (event, context, callback) => {
     if (resourceTypes.length === 0) callback(null, responseComplete);
     const resourceTypesStringify = resourceTypes.join('" OR awsresource = "');
     const queryString = 'SELECT * FROM `database-1`.`Rules` WHERE status = "active" AND (awsresource = "' + resourceTypesStringify + '")';
-    console.log(`Query string: ${queryString}`);
+    // console.log(`Query string: ${queryString}`);
 
-    var pThreads = [];
+    // var pThreads = [];
     try {
       let lstOfRulez = await connection.query(queryString);
-      console.log("after getRules");
+      // console.log("after getRules");
       lstOfRulez = mapRulesToYAMLContent(lstOfRulez);
       console.log(JSON.stringify(lstOfRulez));
 
@@ -247,35 +255,35 @@ module.exports.parseFile = async (event, context, callback) => {
         let rulezData = JSON.stringify(violationRulesByResourceType);
 
         if (rulezData !== '{}' && Object.keys(violationRulesByResourceType).length > 0 && resourceTypes.includes(violationRulesByResourceType.awsresource)) {
-          console.log(`inside loop ${rulezData}`);
+          // console.log(`inside loop ${rulezData}`);
           const resourceType = violationRulesByResourceType.awsresource;
           const resources = parsedResources[resourceType];
           const resourceNames = Object.keys(resources);
 
           for (const rn of resourceNames) {
-            console.log('rn: ' + rn);
-            pThreads.push(
-              await processResource(
+            // console.log('rn: ' + rn);
+            // pThreads.push(
+              processResource(
                 resources[rn],
                 JSON.parse(rulezData),
                 resourceType,
                 rn,
                 filePath
               )
-            );
-            console.log(`set thread to process of ${rn}`);
+            // );
+            // console.log(`set thread to process of ${rn}`);
           }
         }
       }
-      console.log('process Threads: ' + pThreads);
+      // console.log('process Threads: ' + pThreads);
     } catch (e) {
       setImmediate(() => {
         throw e;
       });
     }
 
-    Promise.all(pThreads)
-      .then(async () => {
+    // Promise.all(pThreads)
+    //   .then(async () => {
 
         console.log(`${file.path}: Scanning complete`);
 
@@ -335,14 +343,13 @@ module.exports.parseFile = async (event, context, callback) => {
 
         console.log(`${file.path}: Finished`);
         return;
-      })
-      .catch((err) => {
-        throw err;
-      });
+      // })
+      // .catch((err) => {
+      //   throw err;
+      // });
   } catch (err) {
     console.error(`${file.path}: ${err}`);
     addError('invalidTerraformFileError');
-  } finally {
   }
 };
 

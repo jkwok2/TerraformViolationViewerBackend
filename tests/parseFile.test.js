@@ -19,20 +19,26 @@ const COMPLEX_OBJ = {
 
 describe ('parseFile hasProperty', () => {
     it ('simple case first level', async() => {
-        const response = await parseFile.hasProperty(COMPLEX_OBJ, "a");
+        const response = parseFile.hasProperty(COMPLEX_OBJ, "a");
         expect(response).toBe(true);
     });
 
     it ('complex case nested', async() => {
-        const responseB = await parseFile.hasProperty(COMPLEX_OBJ, "a.b");
+        const responseB = parseFile.hasProperty(COMPLEX_OBJ, "a.b");
         expect(responseB).toBe(true);
         
-        const responseJ = await parseFile.hasProperty(COMPLEX_OBJ, "j");
+        const responseJ = parseFile.hasProperty(COMPLEX_OBJ, "j");
         expect(responseJ).toBe(false);
 
-        const responseI = await parseFile.hasProperty(COMPLEX_OBJ, "i");
+        const responseI = parseFile.hasProperty(COMPLEX_OBJ, "i");
         expect(responseI).toBe(false);
     });
+
+    it ('empty case', async() => {
+        const obj = {};
+        const response = parseFile.hasProperty(obj, "as.be");
+        expect(response).toBe(false);
+    })
 });
 
 describe ('parseFile getPropertyValue', () => {
