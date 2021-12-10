@@ -7,7 +7,8 @@
 This backend is an application which monitors specified Github repositories through the installation of our webhook.\
 The application will scan all terraform files in every pull request created in the repository for violations against rules specified by the HSBC sponsors.\
 The scanned results are emailed to the creator of the pull request.\
-**Note: Emails do not display as designed on Microsoft Outlook.**
+**Note: Emails do not display as designed on Microsoft Outlook.**\
+**Note: Email function currently connects to us-east-1 meaning identities need to be verified for that regions regardless of where the function is deployed to.**
 
 ### frontend
 
