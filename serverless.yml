@@ -1,20 +1,5 @@
-# Welcome to Serverless!
-#
-# This file is the main config file for your service.
-# It's very minimal at this point and uses default values.
-# You can always add more config options for more control.
-# We've included some commented out config examples here.
-# Just uncomment any of them to get that config option.
-#
-# For full config options, check the docs:
-#    docs.serverless.com
-#
-# Happy Coding!
+service: hsbc-backend-app
 
-service: hsbc-backend-app-meg
-
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
 frameworkVersion: '2'
 
 provider:
@@ -25,7 +10,7 @@ provider:
 
   # you can overwrite defaults here
   stage: dev
-  region: us-east-1
+  region: ca-central-1
 
   vpc:
     securityGroupIds:
@@ -37,26 +22,32 @@ provider:
   environment:
     GITHUB_WEBHOOK_SECRET: cpsc319
     GITHUB_AUTHENTICATION_TOKEN: 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
-    efsAccessPoint: fsap-099d31199150da4f8
-    # LocalMountPath: /efs
     EFS_MOUNT_PATH: ${self:custom.efsMountPath}
+    SOURCE_ADDRESS: "Group 4 <cpsc319fall2021@gmail.com>"
 
   # you can add statements to the Lambda function's IAM Role here
   # iamRoleStatements:
   iamRoleStatements:
     - Effect: 'Allow'
       Action:
+        - lambda:InvokeFunction
+        - ses:SendTemplatedEmail
         - ec2:CreateNetworkInterface
         - ec2:DescribeNetworkInterfaces
+        - ec2:DetachNetworkInterface
         - ec2:DeleteNetworkInterface
-        - ses:SendTemplatedEmail
-        - lambda:InvokeFunction
+        - elasticfilesystem:ClientMount
+        - elasticfilesystem:ClientRootAccess
+        - elasticfilesystem:ClientWrite
+        - elasticfilesystem:DescribeMountTargets
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
       Resource: '*'
 
 functions:
   webhook:
     handler: functions/webhook.webhook
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
@@ -65,24 +56,18 @@ functions:
           path: /webhook
           method: post
           cors: true
-  writeFile:
-    handler: functions/writeFile.writeFile
-    role: lambdaEFSrole
-    fileSystemConfig:
-      localMountPath: ${self:custom.efsMountPath}
-      arn: !GetAtt AccessPointResource.Arn
     maximumRetryAttempts: 0
   parseFile:
     handler: functions/parseFile.parseFile
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
-    timeout: 20
+    timeout: 100
     maximumRetryAttempts: 0
+  saveViolations:
+    handler: functions/saveViolations.saveViolations
   monitor:
     handler: functions/monitor.monitor
-    role: lambdaEFSrole
     fileSystemConfig:
       localMountPath: ${self:custom.efsMountPath}
       arn: !GetAtt AccessPointResource.Arn
@@ -115,6 +100,15 @@ functions:
           method: ANY
       - http:
           path: /addRule
+          method: ANY
+  results:
+    handler: functions/routes/results.handler
+    events:
+      - http:
+          path: /results
+          method: ANY
+      - http:
+          path: /results/{proxy+}
           method: ANY
   emailSender:
     handler: functions/emailSender/emailSender.emailSender
@@ -195,11 +189,6 @@ resources:
         RouteTableId: !Ref RouteTableAPrivate
         DestinationCidrBlock: '0.0.0.0/0'
         NatGatewayId: !Ref NatGatewayA
-    # NatGatewayLambdaSecurityGroup:
-    #   Type: 'AWS::EC2::SecurityGroup'
-    #   Properties:
-    #     VpcId: !Ref VPC
-    #     GroupDescription: 'Security group for NAT Gateway Lambda'
     ElasticFileSystem:
       Type: 'AWS::EFS::FileSystem'
       Properties:
@@ -237,54 +226,6 @@ resources:
         SubnetId: !Ref SubnetAPrivate
         SecurityGroups:
           - !GetAtt VPC.DefaultSecurityGroup
-
-    lambdaEFSrole:
-      Type: AWS::IAM::Role
-      Properties:
-        RoleName: lambdaEFSrole
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - lambda.amazonaws.com
-              Action: sts:AssumeRole
-        Policies:
-          - PolicyName: lambdaEFSPolicy
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - lambda:InvokeFunction
-                  Resource: '*'
-                - Effect: Allow
-                  Action:
-                    - logs:CreateLogGroup
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                  Resource:
-                    - 'Fn::Join':
-                        - ':'
-                        - - 'arn:aws:logs'
-                          - Ref: 'AWS::Region'
-                          - Ref: 'AWS::AccountId'
-                          - 'log-group:/aws/lambda/*:*:*'
-                - Effect: Allow
-                  Action:
-                    - ec2:CreateNetworkInterface
-                    - ec2:DescribeNetworkInterfaces
-                    - ec2:DetachNetworkInterface
-                    - ec2:DeleteNetworkInterface
-                  Resource: '*'
-                - Effect: Allow
-                  Action:
-                    - elasticfilesystem:ClientMount
-                    - elasticfilesystem:ClientRootAccess
-                    - elasticfilesystem:ClientWrite
-                    - elasticfilesystem:DescribeMountTargets
-                  Resource: '*'
 
 custom:
   # custom variables to be passed through as environment variables

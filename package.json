@@ -12,14 +12,19 @@
     "joi": "^17.4.2",
     "latest": "^0.2.0",
     "latest-version": "^6.0.0",
+    "multer": "^1.4.4",
     "mysql": "^2.18.1",
     "mysql2": "^2.3.3",
     "serverless-http": "^2.7.0",
+    "serverless-mysql": "^1.5.4",
     "uuid": "^8.3.2",
     "yaml": "^1.10.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "setUpTemplate": "aws ses create-template --cli-input-json file://scannedTemplateUpload.json && aws ses create-template --cli-input-json file://errorTemplateUpload.json",
+    "updateTemplate": "aws ses update-template --cli-input-json file://scannedTemplateUpload.json && aws ses update-template --cli-input-json file://errorTemplateUpload.json",
+    "testEmail": "aws ses send-templated-email --cli-input-json file://sendEmailManual.json"
   },
   "repository": {
     "type": "git",
@@ -33,6 +38,7 @@
   },
   "homepage": "https://github.com/CPSC-319/Group4HSBC#readme",
   "devDependencies": {
-    "boto3": "^0.0.1"
+    "boto3": "^0.0.1",
+    "jest": "^27.3.1"
   }
 }

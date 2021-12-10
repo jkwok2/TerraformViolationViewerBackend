@@ -3,10 +3,11 @@ const express = require('express');
 const ruleSchema = require('../schemas/rule');
 const validateRequest = require('../middlewares/validateRequest');
 const errorHandler = require('../middlewares/errorHandler');
-const initializeConnection = require('./common');
 const multer = require('multer');
 const upload = multer();
 const YAML = require('yaml')
+// const initializeConnection = require('./common');
+const connection = require('./common');
 
 const rulesAPI = express();
 rulesAPI.use(express.json());
@@ -22,15 +23,14 @@ rulesAPI.use((req, res, next) => {
 });
 
 rulesAPI.get('/rules', async (req, res) => {
-  const con = initializeConnection();
   try {
-    const [rows, _] = await con.query('select * from `database-1`.`Rules`');
+    const rows = await connection.query('select * from `database-1`.`Rules`');
     console.log({ rows });
-    con.end();
+    await connection.quit();
     return res.status(200).send(rows);
   } catch (err) {
     console.log({ err });
-    con.end();
+    await connection.quit();
     return res.status(500).send(err);
   }
 });
@@ -39,7 +39,6 @@ rulesAPI.patch(
   '/rules/:ruleId',
   validateRequest(ruleSchema.updateRuleById, 'params'),
   async (req, res) => {
-    const con = initializeConnection();
     let query;
     console.log('start: ', req.body, req.params);
     if (req.body.status) {
@@ -50,17 +49,17 @@ rulesAPI.patch(
       query = `update \`database-1\`.\`Rules\` set severity='${req.body.severity}' where ruleId='${req.params.ruleId}'`;
     } else {
       console.log('else: ', req.body, req.params);
-      con.end();
+      await connection.quit();
       return res.status(500).send({});
     }
     try {
-      const [rows, _] = await con.query(query);
+      const rows = await connection.query(query);
       console.log({ rows });
-      con.end();
+      await connection.quit();
       return res.status(200).send(rows);
     } catch (err) {
       console.log({ err });
-      con.end();
+      await connection.quit();
       return res.status(500).send(err);
     }
   }
@@ -68,39 +67,37 @@ rulesAPI.patch(
 
 rulesAPI.post('/addRule', upload.any(), async (req, res) => {
   console.log(req);
-  const con = initializeConnection();
+  // const con = connection();
   for (let data of req.files) {
     console.log(data)
     let fileName = data.originalname;
     console.log(fileName);
-    let encoding = data.encoding;
-    console.log(encoding)
-    let type = data.mimetype;
-    console.log(type)
     let contentStr = data.buffer.toString('utf8');
     console.log(contentStr)
     let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
     console.log('parsing YAML');
     let yamlData = YAML.parse(contentStr);
     if (yamlData.resource === undefined) {
-      con.end();
+      connection.end();
       return res.status(400).send('no resource. invalid rule detected.')
     }
     let category = yamlData.category
     if (category === undefined) {
       category = 'Not Detected'
     }
+    let ruleDescription = yamlData.description
+    console.log(ruleDescription)
     try {
-      await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, description, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', 'foo', '${dateTime}', '${contentStr}')`);
+      await connection.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, description, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${ruleDescription}', '${dateTime}', '${contentStr}')`);
       console.log('file uploaded')
     } catch (err) {
       console.log('there is an error')
       console.log({ err });
-      con.end();
+      connection.end();
       return res.status(500).send(err);
     }
   }
-  con.end();
+  connection.end();
   return res.status(200).send('success! file(s) uploaded!');
 });
 

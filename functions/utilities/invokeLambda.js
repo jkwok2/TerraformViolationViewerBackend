@@ -8,23 +8,30 @@ var lambda = new aws.Lambda();
 *   Invoke lambda asynchronously with no response expected
 *   payload is JSON object specific to lambda
 *   lambdaName is longform name from deployed lambda function. 
-*       Example: hsbc-backend-app-meg-dev-webhook
+*       Example: hsbc-backend-app-dev-webhook
 */
 const invokeLambda = (lambdaName, payload) => {
 
-    var params = {
+    const params = {
         FunctionName: lambdaName, // Name of the function to be called
         InvocationType: 'Event', // For synchronous calls
-        LogType: 'None', // Do not return log from invoked function 
+        LogType: 'None', // Do not return log from invoked function
         Payload : JSON.stringify(payload) // The payload sent to the function
     };
+
+    console.log(`Invoking ${lambdaName}`);
 
     return lambda.invoke(params, function(err, data) {
         if (err) {
             console.log(`Error when invoking ${params.FunctionName}`);
             throw err;
-        } else {
+        }
+        console.log(`${params.FunctionName} invoked`)
+        if (data) {
             console.log(`${params.FunctionName} invoked`)
+            console.log(data);
+            console.log(data.Payload);
+            return data.Payload;
         }
       }).promise();
 };
