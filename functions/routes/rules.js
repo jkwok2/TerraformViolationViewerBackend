@@ -82,12 +82,16 @@ rulesAPI.post('/addRule', upload.any(), async (req, res) => {
     let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
     console.log('parsing YAML');
     let yamlData = YAML.parse(contentStr);
+    if (yamlData.resource === undefined) {
+      con.end();
+      return res.status(400).send('no resource. invalid rule detected.')
+    }
     let category = yamlData.category
     if (category === undefined) {
       category = 'Not Detected'
     }
     try {
-      await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`);
+      await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, description, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', 'foo', '${dateTime}', '${contentStr}')`);
       console.log('file uploaded')
     } catch (err) {
       console.log('there is an error')
@@ -99,39 +103,5 @@ rulesAPI.post('/addRule', upload.any(), async (req, res) => {
   con.end();
   return res.status(200).send('success! file(s) uploaded!');
 });
-
-  // try {
-  //   await Promise.all(
-  //     req.files.map(async (file) => {
-  //       let fileName = file.originalname;
-  //       let contentStr = file.buffer.toString('utf8');
-  //       console.log(contentStr)
-  //       let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-  //       console.log('parsing YAML');
-  //       let yamlData = YAML.parse(contentStr);
-  //       let category = yamlData.category
-  //       if (category === undefined) {
-  //         category = 'Not Detected'
-  //       }
-  //       const [result, _ ] = await con.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${dateTime}', '${contentStr}')`);
-  //       console.log({result})
-  //     })
-  //   )
-  //   con.end()
-  //   return res.status(200).send('success! file uploaded!');
-  // } catch (err) {
-  //   console.log('there is an error')
-  //   console.log({ err });
-  //   con.end();
-  //   return res.status(500).send(err);
-  // }
-  // }
-  // // TODO: TA: technically, your front-end should always upload  a single file
-  //   // TODO: TA you need to have some try catch and check if the yamlData has the following fields:
-  //   // awsresource
-  //   // severity
-  //   // category
-  //   // etc.
-  //   // If these fields are not available, then you should return a BAD REQUEST 400
 
 module.exports.handler = sls(rulesAPI);
