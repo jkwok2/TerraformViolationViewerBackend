@@ -98,9 +98,6 @@ functions:
       - http:
           path: /rules/{proxy+}
           method: ANY
-      - http:
-          path: /addRule
-          method: ANY
   results:
     handler: functions/routes/results.handler
     events:
