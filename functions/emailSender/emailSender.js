@@ -36,7 +36,7 @@ module.exports.emailSender = async function (event) {
   let tempData;
 
   switch (statVal){
-    case "pass":
+    case "success":
       temp = "scannedTemplate";
       tempData = "{ \"name\":\"".concat(name).concat("\", \"repoName\":\"").concat(repoName).concat("\", \"errCount\":\"").concat("no").concat("\" }");
       break;
