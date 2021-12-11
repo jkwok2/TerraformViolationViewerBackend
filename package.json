@@ -4,6 +4,7 @@
   "description": "",
   "main": "handler.js",
   "dependencies": {
+    "@sindresorhus/is": "^4.2.0",
     "aws-sdk": "^2.999.0",
     "axios": "^0.24.0",
     "express": "^4.17.1",
@@ -38,6 +39,7 @@
   "homepage": "https://github.com/CPSC-319/Group4HSBC#readme",
   "devDependencies": {
     "boto3": "^0.0.1",
-    "jest": "^27.3.1"
+    "jest": "^27.3.1",
+    "multer": "^1.4.4"
   }
 }
