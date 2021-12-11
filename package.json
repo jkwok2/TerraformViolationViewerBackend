@@ -39,6 +39,7 @@
   "homepage": "https://github.com/CPSC-319/Group4HSBC#readme",
   "devDependencies": {
     "boto3": "^0.0.1",
-    "jest": "^27.3.1"
+    "jest": "^27.3.1",
+    "multer": "^1.4.4"
   }
 }
