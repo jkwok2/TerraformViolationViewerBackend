@@ -3,9 +3,7 @@ const express = require('express');
 const ruleSchema = require('../schemas/rule');
 const validateRequest = require('../middlewares/validateRequest');
 const connection = require('./common');
-const YAML = require('yaml');
-const multer = require('multer');
-const upload = multer();
+
 
 
 const rulesAPI = express();
@@ -63,81 +61,5 @@ rulesAPI.patch(
         }
     }
 );
-
-rulesAPI.post('/rules', upload.any(), async (req, res) => {
-    console.log(req);
-    // const con = connection();
-    for (let data of req.files) {
-        console.log(data)
-        let fileName = data.originalname;
-        console.log(fileName);
-        let contentStr = data.buffer.toString('utf8');
-        console.log(contentStr)
-        let dateTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        console.log('parsing YAML');
-        let yamlData = YAML.parse(contentStr);
-        if (yamlData.resource === undefined) {
-            await connection.end();
-            return res.status(400).send('no resource. invalid rule detected.')
-        }
-        let category = yamlData.category
-        if (category === undefined) {
-            category = 'Not Detected'
-        }
-        try {
-            const rows = await connection.query('select * from `database-1`.`Rules` where status="active"');
-            let hasSet = new Set()
-            let notHasSet = new Set()
-            for (let rule in rows) {
-                const content = YAML.parse(rows[rule].content)
-                if (content.has !== undefined) {
-                    let objString = JSON.stringify(content.has)
-                    hasSet.add(objString)
-                    // hasSet.add(content.has)
-                    // console.log('has added')
-                }
-                if (content.has_not !== undefined) {
-                    let objString = JSON.stringify(content.has_not)
-                    notHasSet.add(objString)
-                    // notHasSet.add(content.has_not)
-                    // console.log('has_not added')
-                }
-
-            }
-            console.log('following are the sets')
-            console.log(hasSet)
-            console.log(notHasSet)
-            // console.log(yamlData.has)
-            // console.log('statements')
-            // console.log(yamlData.has !== undefined)
-            // console.log(hasSet.has(yamlData.has))
-            if (yamlData.has !== undefined && hasSet.has(JSON.stringify(yamlData.has))) {
-                await connection.quit();
-                return res.status(400).send('there is a dup');
-            }
-            if (yamlData.has_not !== undefined && notHasSet.has(JSON.stringify(yamlData.has_not))) {
-                await connection.quit();
-                return res.status(400).send('there is a dupe');
-            }
-        } catch (err) {
-            console.log({ err });
-            await connection.quit();
-            return res.status(500).send('filtering duplicates error');
-        }
-        let ruleDescription = yamlData.description
-        // console.log(ruleDescription)
-        try {
-            await connection.query(`Insert into \`database-1\`.\`Rules\` (ruleId, fileId, awsresource, severity, violationCategory, status, description, dateAdded, content) values (null, '${fileName}', '${yamlData.resource}', '${yamlData.severity}', '${category}', 'active', '${ruleDescription}', '${dateTime}', '${contentStr}')`);
-            console.log('file uploaded')
-        } catch (err) {
-            console.log('there is an error')
-            console.log({ err });
-            await connection.end();
-            return res.status(500).send(err);
-        }
-    }
-    await connection.end();
-    return res.status(200).send('success! file(s) uploaded!');
-});
 
 module.exports.handler = sls(rulesAPI);
