@@ -4,6 +4,7 @@
   "description": "",
   "main": "handler.js",
   "dependencies": {
+    "@sindresorhus/is": "^4.2.0",
     "aws-sdk": "^2.999.0",
     "axios": "^0.24.0",
     "express": "^4.17.1",
