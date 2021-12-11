@@ -102,7 +102,7 @@ rulesAPI.post('/rules', upload.any(), async (req, res) => {
                     // notHasSet.add(content.has_not)
                     // console.log('has_not added')
                 }
-                // console.log(content)
+
             }
             console.log('following are the sets')
             console.log(hasSet)
