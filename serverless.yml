@@ -21,7 +21,7 @@ provider:
   # you can define service wide environment variables here
   environment:
     GITHUB_WEBHOOK_SECRET: cpsc319
-    GITHUB_AUTHENTICATION_TOKEN: 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
+    GITHUB_AUTHENTICATION_TOKEN: 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
     EFS_MOUNT_PATH: ${self:custom.efsMountPath}
     SOURCE_ADDRESS: "Group 4 <cpsc319fall2021@gmail.com>"
 
