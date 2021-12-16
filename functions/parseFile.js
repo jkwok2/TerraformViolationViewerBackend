@@ -16,18 +16,6 @@ const connection = require('serverless-mysql')({
 });
 
 aws.config.region = process.region;
-let violationsFound;
-let errorsEncountered;
-const file = {
-  content: '',
-  path: '',
-};
-
-const setFile = (content, path) => {
-    file.content = content;
-    file.path = path;
-    Object.freeze(file);
-}
 
 function mapRulesToYAMLContent(data) {
   return data.map((x) => {
@@ -37,7 +25,7 @@ function mapRulesToYAMLContent(data) {
   });
 }
 
-const getLineNumber = (resourceType, resourceName) => {
+const getLineNumber = (resourceType, resourceName, file) => {
   const regexString = `resource\\s+("${resourceType}"|'${resourceType}')\\s+("${resourceName}"|'${resourceName}')`;
   const regex = new RegExp(regexString, 'g');
   const searchString = file.content.match(regex);
@@ -70,16 +58,15 @@ const getPropertyValue = (resource, propertyKey) => {
 
 const addError = (e) => {
   errorsEncountered.push(e);
-  console.log(`Error encountered at ${file.path}: ${JSON.stringify(e)}`);
   throw e;
 }
 
 
-const addViolation = (violationRule, resourceType, resourceName, filePath, rulesObject) => {
+const addViolation = (violationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound) => {
   console.log(`Inside addViolation with violationRule: ${JSON.stringify(violationRule)}, resourceType: ${resourceType}, resourceName: ${resourceName}`);
   console.log(JSON.stringify(rulesObject));
   try {
-    const lineNumber = getLineNumber(resourceType, resourceName);
+    const lineNumber = getLineNumber(resourceType, resourceName, file, violationsFound);
     const violation = {
       violationRuleId: rulesObject.ruleId,
       filePath: filePath,
@@ -98,7 +85,7 @@ const addViolation = (violationRule, resourceType, resourceName, filePath, rules
 }
 
 // has no key, has no value at key, has no value in range at key
-const hasNotSingle = (resourceType, resourceName, hasNotViolationRule, resource, filePath, rulesObject) => {
+const hasNotSingle = (resourceType, resourceName, hasNotViolationRule, resource, filePath, rulesObject, file, violationsFound) => {
   // check if violation rule is properly formatted, if not ignore rule
   if (!hasProperty(hasNotViolationRule, "key")) return;
   try {
@@ -107,7 +94,7 @@ const hasNotSingle = (resourceType, resourceName, hasNotViolationRule, resource,
     // checking for value
     if (hasNotViolationRule.hasOwnProperty("value")) {
       if (getPropertyValue(resource, hasNotViolationRule.key) === hasNotViolationRule.value) {
-        addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject);
+        addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound);
       }
       return;
     }
@@ -116,19 +103,19 @@ const hasNotSingle = (resourceType, resourceName, hasNotViolationRule, resource,
       const rangeValues = hasNotViolationRule.range;
       const value = getPropertyValue(resource, hasNotViolationRule.key);
       if (rangeValues.some(v => v === value)) {
-        addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject);
+        addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound);
       }
       return;
     }
     // has property when it shouldn't
-    addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject);
+    addViolation(hasNotViolationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound);
   } catch (e) {
     console.log(`Resource type: ${resourceType}, resource name: ${resourceName}, violation rule: ${hasNotViolationRule.id} skipped due to parsing error`);
   }
 }
 
 // has key, has key value, has key value in range
-const hasSingle = (resourceType, resourceName, hasViolationRule, resource, filePath, rulesObject) => {
+const hasSingle = (resourceType, resourceName, hasViolationRule, resource, filePath, rulesObject, file, violationsFound) => {
   // check if violation rule is properly formatted, if not ignore rule
   console.log(`In hasSingle with resourceType: ${resourceType}, resourceName: ${resourceName}, hasViolationRule: ${JSON.stringify(hasViolationRule)}, resource: ${resource}`);
   console.log(resource);
@@ -139,14 +126,14 @@ const hasSingle = (resourceType, resourceName, hasViolationRule, resource, fileP
     console.log(`hasProperty(${JSON.toString({resource})}, ${hasViolationRule.key}): ${hasProperty(resource, hasViolationRule.key)}`)
     if (!hasProperty(resource, hasViolationRule.key)) {
       //console.log(`has single !hasProperty: ${hasViolationRule.key}`);
-      addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
+      addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound);
       console.log(`Property is missing for ${resourceName}`);
       return;
     }
     // if checking for value, see if they match
     if (hasProperty(hasViolationRule, "value")) {
       if (getPropertyValue(resource, hasViolationRule.key) !== hasViolationRule.value) {
-        addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
+        addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound);
         console.log(`Value does not equate for ${resourceName}`);
       }
       return;
@@ -156,7 +143,7 @@ const hasSingle = (resourceType, resourceName, hasViolationRule, resource, fileP
       const rangeValues = hasViolationRule.range;
       const value = getPropertyValue(resource, hasViolationRule.key);
       if (!rangeValues.some(v => v === value)) {
-        addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject);
+        addViolation(hasViolationRule, resourceType, resourceName, filePath, rulesObject, file, violationsFound);
         console.log(`Range does not equate for ${resourceName}`);
       }
       return;
@@ -169,28 +156,28 @@ const hasSingle = (resourceType, resourceName, hasViolationRule, resource, fileP
 }
 
 
-const hasNotList = (resourceType, resourceName, hasNotViolationRules, resource, filePath, rulesObject) => {
+const hasNotList = (resourceType, resourceName, hasNotViolationRules, resource, filePath, rulesObject, file, violationsFound) => {
   hasNotViolationRules.forEach(r => {
-    hasNotSingle(resourceType, resourceName, r, resource, filePath, rulesObject);
+    hasNotSingle(resourceType, resourceName, r, resource, filePath, rulesObject, file, violationsFound);
   })
 }
 
-const hasList = (resourceType, resourceName, hasViolationRules, resource, filePath, rulesObject) => {
+const hasList = (resourceType, resourceName, hasViolationRules, resource, filePath, rulesObject, file, violationsFound) => {
   hasViolationRules.forEach(r => {
-    hasSingle(resourceType, resourceName, r, resource, filePath, rulesObject);
+    hasSingle(resourceType, resourceName, r, resource, filePath, rulesObject, file, violationsFound);
   });
 }
 
-const processResource = (resource, violationRules, resourceType, resourceName, filePath) => {
+const processResource = (resource, violationRules, resourceType, resourceName, filePath, file, violationsFound) => {
 
   let rulesObject = violationRules.content
   if (typeof rulesObject !== "undefined") {
     if (rulesObject.hasOwnProperty('has')) {
-      hasList(resourceType, resourceName, rulesObject.has, resource, filePath, violationRules);
+      hasList(resourceType, resourceName, rulesObject.has, resource, filePath, violationRules, file, violationsFound);
 
 
     } else if (rulesObject.hasOwnProperty('has_not')) {
-      hasNotList(resourceType, resourceName, rulesObject.has_not, resource, filePath, violationRules);
+      hasNotList(resourceType, resourceName, rulesObject.has_not, resource, filePath, violationRules, file, violationsFound);
     }
   } else {
     console.log("undefined in process resource");
@@ -199,9 +186,8 @@ const processResource = (resource, violationRules, resourceType, resourceName, f
 }
 
 module.exports.parseFile = async (event, context, callback) => {
-  // console.log(`Version 7`);
-  violationsFound = [];
-  errorsEncountered = [];
+  let violationsFound = [];
+  let errorsEncountered = [];
 
   const filename = event.filename;
   const filePath = event.path;
@@ -210,11 +196,10 @@ module.exports.parseFile = async (event, context, callback) => {
   const repo = event.repoName;
   const prDate = event.prDate;
 
-  // console.log(`start reading file ${filename}`);
-  // console.log(`start reading file ${filePath}`);
-
   const terraformFile = Buffer.from(event.content, 'base64').toString('ascii');
-  setFile(terraformFile, event.path);
+
+  const file = {content: terraformFile, path: event.path};
+  Object.freeze(file);
 
   const responseComplete = {
     statusCode: 200,
@@ -268,7 +253,9 @@ module.exports.parseFile = async (event, context, callback) => {
                 JSON.parse(rulezData),
                 resourceType,
                 rn,
-                filePath
+                filePath,
+                file,
+                violationsFound
               )
             // );
             // console.log(`set thread to process of ${rn}`);
@@ -349,6 +336,7 @@ module.exports.parseFile = async (event, context, callback) => {
       // });
   } catch (err) {
     console.error(`${file.path}: ${err}`);
+    console.log(`Error encountered at ${file.path}: ${JSON.stringify(err)}`);
     addError('invalidTerraformFileError');
   }
 };
@@ -384,4 +372,3 @@ module.exports.parseFile = async (event, context, callback) => {
 module.exports.getLineNumber = getLineNumber;
 module.exports.hasProperty = hasProperty;
 module.exports.getPropertyValue = getPropertyValue;
-module.exports.setFile = setFile;
