@@ -58,10 +58,10 @@ describe ('parseFile getPropertyValue', () => {
 
 
 describe ('parseFile getLineNumber', () => {
-    
-    beforeEach(() => {
-        parseFile.setFile('resource "aws-lambda" "example" \n words available \n some extra char resource "aws-dynamodb" "example2"', "path/a/b/c.tf", "github/a/b/c.tf");
-    });
+    const file = {
+        content: 'resource "aws-lambda" "example" \n words available \n some extra char resource "aws-dynamodb" "example2"',
+        path: "github/a/b/c.tf"
+    };
 
     it ('simple get resource first line from file', () => {
         const violation = {
@@ -72,7 +72,8 @@ describe ('parseFile getLineNumber', () => {
             resourceType: "aws-lambda",
             resourceName: "example"
         };
-        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName)).toBe(1);
+        
+        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName, file)).toBe(1);
     });
 
     it ('simple get resource from file', () => {
@@ -84,7 +85,7 @@ describe ('parseFile getLineNumber', () => {
             resourceType: "aws-dynamodb",
             resourceName: "example2"
         };
-        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName)).toBe(3);
+        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName, file)).toBe(3);
     });
 
     it ('resource does not exist in file', () => {
@@ -96,6 +97,6 @@ describe ('parseFile getLineNumber', () => {
             resourceType: "aws-not-exist",
             resourceName: "example2"
         };
-        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName)).toBe(-1);
+        expect(parseFile.getLineNumber(violation.resourceType, violation.resourceName, file)).toBe(-1);
     });
 });
