@@ -1,5 +1,3 @@
-# Group4HSBC
-
 ## Application Overview
 
 ### backend
